@@ -29,6 +29,8 @@ export function SignupFlow() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Non-blocking issues on the verify step (e.g. SendGrid), not “sign-in failed”. */
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
   const [createdAccountId, setCreatedAccountId] = useState<string | null>(null);
 
   const emailId = useId();
@@ -108,23 +110,44 @@ export function SignupFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
+        cache: "no-store",
         body: JSON.stringify({ email, password: signupPassword }),
       });
-      const regData = await regRes.json().catch(() => ({}));
+      const regData = (await regRes.json().catch(() => ({}))) as {
+        error?: string;
+        account_id?: string;
+        verification_required?: boolean;
+        verification_email_sent?: boolean;
+        verification_email_error?: string;
+      };
       if (!regRes.ok) {
         throw new Error(regData.error || `Registration failed (${regRes.status})`);
       }
       const accountId = regData.account_id as string;
+      if (!accountId) {
+        throw new Error("Registration succeeded but no account id was returned.");
+      }
+      // New flow never logs in here — old deployments only return { account_id } without this flag.
+      if (regData.verification_required !== true) {
+        setError(
+          "Your account may have been created, but this site is not running the email-verification registration API (or it failed to start). Redeploy the latest RegistrationPage (including `app/api/auth/register`) and set SIGNUP_VERIFY_SECRET + SendGrid env vars. Unverified sign-in only applies from the home page."
+        );
+        setCreatedAccountId(accountId);
+        setVerifyNotice(null);
+        setSignupConfirm("");
+        return;
+      }
       setCreatedAccountId(accountId);
       setVerifyCode("");
       setStep(4);
+      setError(null);
       if (regData.verification_email_sent === false) {
-        setError(
+        setVerifyNotice(
           (regData.verification_email_error as string | undefined) ||
-            "Account created, but the verification email could not be sent. Use “Resend code” below."
+            "We created your account, but the verification email could not be sent. Check SendGrid env vars, then tap “Resend code” below."
         );
       } else {
-        setError(null);
+        setVerifyNotice(null);
       }
       setSignupConfirm("");
     } catch (err) {
@@ -136,17 +159,19 @@ export function SignupFlow() {
 
   async function handleResendCode() {
     setError(null);
+    setVerifyNotice(null);
     setLoading(true);
     try {
       const res = await fetch("/api/auth/verification/resend", {
         method: "POST",
         credentials: "same-origin",
+        cache: "no-store",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || `Could not resend (${res.status})`);
       }
-      setError(null);
+      setVerifyNotice("A new code was sent. Check your inbox.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not resend code");
     } finally {
@@ -430,6 +455,14 @@ export function SignupFlow() {
             <h2 className="font-[family-name:var(--font-cinzel)] text-2xl font-bold text-[#F0BA19]">
               Verify your email
             </h2>
+            {verifyNotice ? (
+              <p
+                className="mt-3 rounded-md border border-amber-500/35 bg-amber-950/30 px-3 py-2 font-[family-name:var(--font-outfit)] text-sm text-amber-100/95"
+                role="status"
+              >
+                {verifyNotice}
+              </p>
+            ) : null}
             <p className="mt-3 font-[family-name:var(--font-outfit)] text-sm text-white/75">
               We sent an <span className="text-white/90">8-digit code</span> to{" "}
               <span className="text-[#F0BA19]/90">{signupEmail}</span>. Enter it below to
@@ -484,6 +517,7 @@ export function SignupFlow() {
                   setStep(3);
                   setVerifyCode("");
                   setError(null);
+                  setVerifyNotice(null);
                 }}
                 className="rounded-md border border-white/20 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/70 hover:bg-white/5"
               >
@@ -525,6 +559,7 @@ export function SignupFlow() {
                   setSignupEmail("");
                   setVerifyCode("");
                   setError(null);
+                  setVerifyNotice(null);
                   router.push("/signup");
                 }}
                 className="rounded-md border border-white/20 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/70 hover:bg-white/5"

@@ -3,6 +3,9 @@ import { Suspense } from "react";
 import { HeroBackdrop } from "@/app/components/HeroBackdrop";
 import { SignupFlow } from "./SignupFlow";
 
+/** Avoid stale shell/cache so clients always load the latest signup bundle. */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Sign up — Hollowed Oath",
   description: "Create a Hollowed Oath account (demo terms, then credentials).",

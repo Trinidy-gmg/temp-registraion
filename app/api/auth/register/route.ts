@@ -111,6 +111,11 @@ export async function POST(request: Request) {
     { status: 201 }
   );
 
+  res.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
+
   res.cookies.set(EMAIL_VERIFY_COOKIE, token, verificationCookieOptions(maxAgeSec));
 
   return res;
