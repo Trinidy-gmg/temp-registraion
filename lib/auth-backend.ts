@@ -12,6 +12,24 @@ export function getAuthBackendConfig(): { baseUrl: string } {
   return { baseUrl };
 }
 
+/** Safe host for logs (no path/query). */
+export function authBackendBaseHost(): string {
+  try {
+    const { baseUrl } = getAuthBackendConfig();
+    return new URL(baseUrl).host;
+  } catch {
+    return "(not-configured)";
+  }
+}
+
+const DEBUG_AUTH = process.env.REGISTRATION_DEBUG_AUTH === "1";
+
+function logAuthBackend(event: string, payload: Record<string, unknown>) {
+  if (DEBUG_AUTH) {
+    console.info("[auth-backend]", event, payload);
+  }
+}
+
 export async function authBackendPost<T>(
   path: "login" | "register",
   body: unknown
@@ -20,19 +38,84 @@ export async function authBackendPost<T>(
 > {
   const { baseUrl } = getAuthBackendConfig();
   const url = `${baseUrl}/api/auth/${path}`;
+  let host: string;
+  try {
+    host = new URL(baseUrl).host;
+  } catch {
+    host = "(invalid-base-url)";
+  }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  logAuthBackend("fetch_start", { path, host });
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[auth-backend] fetch threw", { path, host, message: msg });
+    throw e;
+  }
+
+  const ct = (res.headers.get("content-type") || "").split(";")[0].trim();
+  const text = await res.text();
+  let data: unknown = {};
+  if (text.length > 0) {
+    if (ct.includes("json") || text.trimStart().startsWith("{")) {
+      try {
+        data = JSON.parse(text) as unknown;
+      } catch (parseErr) {
+        console.error("[auth-backend] JSON parse failed", {
+          path,
+          host,
+          status: res.status,
+          contentType: ct,
+          bodyLength: text.length,
+          bodyPreview: text.slice(0, 200),
+        });
+        data = {
+          error: "AdminSite returned non-JSON body",
+          code: "ADMIN_SITE_NON_JSON",
+        };
+      }
+    } else {
+      console.error("[auth-backend] non-JSON response", {
+        path,
+        host,
+        status: res.status,
+        contentType: ct || "(missing)",
+        bodyLength: text.length,
+        bodyPreview: text.slice(0, 200),
+      });
+      data = {
+        error: `AdminSite returned ${ct || "non-JSON"} (${res.status})`,
+        code: "ADMIN_SITE_NON_JSON",
+      };
+    }
+  }
+
+  const keys =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? Object.keys(data as object).slice(0, 24)
+      : [];
+
+  logAuthBackend("fetch_done", {
+    path,
+    host,
+    status: res.status,
+    ok: res.ok,
+    contentType: ct || null,
+    bodyLength: text.length,
+    dataKeys: keys,
   });
-
-  const data = (await res.json().catch(() => ({}))) as T;
 
   if (!res.ok) {
     return { ok: false, status: res.status, data };
   }
-  return { ok: true, status: res.status, data };
+  return { ok: true, status: res.status, data: data as T };
 }
 
 type MarkVerifiedOk = {

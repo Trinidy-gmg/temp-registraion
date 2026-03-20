@@ -133,6 +133,16 @@ All use `path: /`, `sameSite: lax`, `secure` in production.
 
 ---
 
+## Server logs (Vercel)
+
+Every `POST /api/auth/login` emits **`[auth/login]`** lines: `start`, `body_ok` (email domain hint only — **never** the password), `ADMINSITE configured`, `AdminSite response`, `setting cookies` (token **lengths** only), `success`, or errors.
+
+Set **`REGISTRATION_DEBUG_AUTH=1`** on the Vercel project for extra **`[auth-backend]`** logs (`fetch_start` / `fetch_done` with status, `content-type`, response body length, top-level JSON keys).
+
+`lib/auth-backend.ts` reads AdminSite responses with **`res.text()`** then parses JSON so HTML error pages (e.g. 502 gateway) don’t crash the parser and show up as `ADMIN_SITE_NON_JSON` with a short `bodyPreview` in logs.
+
+---
+
 ## Failure modes (debugging)
 
 Inspect the **response body** of failing `POST /api/auth/login` (Network tab):
