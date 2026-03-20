@@ -12,6 +12,74 @@ export type LoginTokens = {
   account_id: string;
 };
 
+/** Browsers / proxies often cap Set-Cookie around 4KB per cookie. */
+const MAX_COOKIE_VALUE_LEN = 4090;
+
+function topLevelKeys(raw: unknown): string[] {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return Object.keys(raw as object).slice(0, 24);
+  }
+  return [];
+}
+
+/**
+ * Normalizes AdminSite → HAMS login JSON into LoginTokens.
+ * Accepts snake_case or camelCase and optional `{ data: { ... } }` wrappers.
+ */
+export function coerceLoginTokens(raw: unknown): {
+  ok: true;
+  tokens: LoginTokens;
+} | { ok: false; reason: "not_object" | "missing_tokens"; keys: string[] } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, reason: "not_object", keys: topLevelKeys(raw) };
+  }
+  const root = raw as Record<string, unknown>;
+  let src: Record<string, unknown> = root;
+  if (root.data && typeof root.data === "object" && !Array.isArray(root.data)) {
+    src = root.data as Record<string, unknown>;
+  }
+
+  const pickStr = (o: Record<string, unknown>, a: string, b: string) => {
+    const x = o[a];
+    const y = o[b];
+    if (typeof x === "string" && x.trim()) return x.trim();
+    if (typeof y === "string" && y.trim()) return y.trim();
+    return "";
+  };
+
+  const access_token = pickStr(src, "access_token", "accessToken");
+  const refresh_token = pickStr(src, "refresh_token", "refreshToken");
+  const account_id = pickStr(src, "account_id", "accountId");
+  const token_type =
+    pickStr(src, "token_type", "tokenType") || "Bearer";
+  const expRaw = src.expires_in ?? src.expiresIn;
+  let expires_in = 900;
+  if (typeof expRaw === "number" && Number.isFinite(expRaw)) {
+    expires_in = expRaw;
+  } else if (typeof expRaw === "string" && /^\d+$/.test(expRaw)) {
+    expires_in = parseInt(expRaw, 10);
+  }
+
+  if (!access_token || !refresh_token || !account_id) {
+    return {
+      ok: false,
+      reason: "missing_tokens",
+      keys: topLevelKeys(raw),
+    };
+  }
+
+  return {
+    ok: true,
+    tokens: {
+      access_token,
+      refresh_token,
+      expires_in,
+      token_type,
+      account_id,
+    },
+  };
+}
+
 /**
  * Sets httpOnly auth cookies and returns a JSON body safe for the browser (no tokens).
  */
@@ -26,17 +94,22 @@ export function jsonWithAuthCookies(
   data: LoginTokens,
   keepMeSignedIn: boolean
 ): NextResponse {
-  const accessTok =
-    typeof data.access_token === "string" ? data.access_token.trim() : "";
-  const refreshTok =
-    typeof data.refresh_token === "string" ? data.refresh_token.trim() : "";
-  const accountId =
-    typeof data.account_id === "string" ? data.account_id.trim() : "";
+  const accessTok = data.access_token.trim();
+  const refreshTok = data.refresh_token.trim();
+  const accountId = data.account_id.trim();
   if (!accessTok || !refreshTok) {
     throw new Error("LOGIN_RESPONSE_MISSING_TOKENS");
   }
   if (!accountId) {
     throw new Error("LOGIN_RESPONSE_MISSING_ACCOUNT_ID");
+  }
+  if (
+    accessTok.length > MAX_COOKIE_VALUE_LEN ||
+    refreshTok.length > MAX_COOKIE_VALUE_LEN
+  ) {
+    throw new Error(
+      `LOGIN_TOKEN_COOKIE_TOO_LARGE:access=${accessTok.length},refresh=${refreshTok.length}`
+    );
   }
 
   const accessMaxAge = safeCookieMaxAge(Number(data.expires_in), 900);
@@ -51,20 +124,30 @@ export function jsonWithAuthCookies(
     token_type: data.token_type ?? "Bearer",
   });
 
-  res.cookies.set(ACCESS_COOKIE, accessTok, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: accessMaxAge,
-  });
-  res.cookies.set(REFRESH_COOKIE, refreshTok, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: refreshMaxAge,
-  });
+  try {
+    res.cookies.set(ACCESS_COOKIE, accessTok, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: accessMaxAge,
+    });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    throw new Error(`COOKIE_SET_ACCESS_FAILED:${m}`);
+  }
+  try {
+    res.cookies.set(REFRESH_COOKIE, refreshTok, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: refreshMaxAge,
+    });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    throw new Error(`COOKIE_SET_REFRESH_FAILED:${m}`);
+  }
 
   return res;
 }

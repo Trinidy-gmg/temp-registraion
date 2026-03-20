@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { authBackendPost, getAuthBackendConfig } from "@/lib/auth-backend";
 import {
+  coerceLoginTokens,
   jsonWithAuthCookies,
-  type LoginTokens,
 } from "@/lib/auth-session-cookies";
 import {
   EMAIL_VERIFY_COOKIE,
@@ -48,9 +48,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 503 });
   }
 
-  let result: Awaited<ReturnType<typeof authBackendPost<LoginTokens | LoginErr>>>;
+  let result: Awaited<
+    ReturnType<typeof authBackendPost<Record<string, unknown> | LoginErr>>
+  >;
   try {
-    result = await authBackendPost<LoginTokens | LoginErr>("login", {
+    result = await authBackendPost<Record<string, unknown> | LoginErr>("login", {
       email,
       password,
     });
@@ -63,7 +65,33 @@ export async function POST(request: Request) {
   }
 
   if (result.ok) {
-    return jsonWithAuthCookies(result.data as LoginTokens, keepMeSignedIn);
+    const coerced = coerceLoginTokens(result.data);
+    if (!coerced.ok) {
+      console.error("[verification/resume] login JSON shape", coerced);
+      return NextResponse.json(
+        {
+          error:
+            "Auth service returned success but login payload was incomplete. Check AdminSite → HAMS /login JSON.",
+          code: "LOGIN_INCOMPLETE",
+          keys: coerced.keys,
+        },
+        { status: 502 }
+      );
+    }
+    try {
+      return jsonWithAuthCookies(coerced.tokens, keepMeSignedIn);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[verification/resume] session cookies", msg);
+      return NextResponse.json(
+        {
+          error: "Could not set session cookies.",
+          code: "SESSION_COOKIE_ERROR",
+          hint: msg.slice(0, 160),
+        },
+        { status: 500 }
+      );
+    }
   }
 
   const err = result.data as LoginErr;
