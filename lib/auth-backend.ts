@@ -34,3 +34,50 @@ export async function authBackendPost<T>(
   }
   return { ok: true, status: res.status, data };
 }
+
+type MarkVerifiedOk = {
+  message?: string;
+  account_id?: string;
+  email_verified?: boolean;
+};
+type MarkVerifiedErr = { error?: string; code?: string };
+
+/**
+ * Marks email verified on HAMS via AdminSite (API key stays on AdminSite).
+ * Optional REGISTRATION_VERIFY_SECRET must match AdminSite when that service enforces it.
+ */
+export async function authBackendMarkEmailVerified(
+  accountId: string
+): Promise<
+  | { ok: true; status: number; data: MarkVerifiedOk }
+  | { ok: false; status: number; data: MarkVerifiedErr }
+> {
+  const { baseUrl } = getAuthBackendConfig();
+  const secret = (process.env.REGISTRATION_VERIFY_SECRET || "").trim();
+  const url = `${baseUrl}/api/auth/mark-email-verified`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (secret) {
+    headers["X-Registration-Verify-Secret"] = secret;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ account_id: accountId }),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as
+    | MarkVerifiedOk
+    | MarkVerifiedErr;
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      status: res.status,
+      data: data as MarkVerifiedErr,
+    };
+  }
+  return { ok: true, status: res.status, data: data as MarkVerifiedOk };
+}

@@ -7,7 +7,7 @@ import { TermsLoremArticle } from "@/app/components/TermsLoremArticle";
 import { useScrollNearBottom } from "@/hooks/use-scroll-near-bottom";
 import { hasTermsScrollAck, setTermsScrollAck } from "@/lib/terms-ack";
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 const inputClass =
   "w-full rounded-md border border-[#F0BA19]/25 bg-black/40 px-3.5 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white placeholder:text-white/35 outline-none transition focus:border-[#F0BA19]/70 focus:ring-2 focus:ring-[#F0BA19]/25";
@@ -24,6 +24,7 @@ export function SignupFlow() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirm, setSignupConfirm] = useState("");
+  const [verifyCode, setVerifyCode] = useState("");
   const [keepMeSignedIn, setKeepMeSignedIn] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,7 @@ export function SignupFlow() {
   const passwordId = useId();
   const confirmId = useId();
   const kmsiId = useId();
+  const verifyCodeId = useId();
 
   useEffect(() => {
     if (fromTerms) {
@@ -76,20 +78,6 @@ export function SignupFlow() {
     setStep(3);
   }
 
-  async function doLogin(email: string, password: string, kmsi: boolean) {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ email, password, keepMeSignedIn: kmsi }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || `Sign in failed (${res.status})`);
-    }
-    return data as { ok: true; account_id: string };
-  }
-
   async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -127,26 +115,79 @@ export function SignupFlow() {
         throw new Error(regData.error || `Registration failed (${regRes.status})`);
       }
       const accountId = regData.account_id as string;
-
-      try {
-        await doLogin(email, signupPassword, keepMeSignedIn);
-        setCreatedAccountId(accountId);
-        setStep(4);
-        setSignupPassword("");
-        setSignupConfirm("");
-      } catch (loginErr) {
-        setCreatedAccountId(accountId);
-        setStep(4);
+      setCreatedAccountId(accountId);
+      setVerifyCode("");
+      setStep(4);
+      if (regData.verification_email_sent === false) {
         setError(
-          loginErr instanceof Error
-            ? `Account created, but automatic sign-in failed: ${loginErr.message}. You can sign in from the home page.`
-            : "Account created, but automatic sign-in failed."
+          (regData.verification_email_error as string | undefined) ||
+            "Account created, but the verification email could not be sent. Use “Resend code” below."
         );
-        setSignupPassword("");
-        setSignupConfirm("");
+      } else {
+        setError(null);
       }
+      setSignupConfirm("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendCode() {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/verification/resend", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Could not resend (${res.status})`);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleConfirmVerification(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const code = verifyCode.replace(/\s/g, "");
+    if (!/^\d{8}$/.test(code)) {
+      setError("Enter the 8-digit code from your email.");
+      return;
+    }
+    if (!signupPassword) {
+      setError("Your password is required to finish verification. Go back to account details or sign in from the home page.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/verification/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          code,
+          password: signupPassword,
+          keepMeSignedIn,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Verification failed (${res.status})`);
+      }
+      setSignupPassword("");
+      setSignupConfirm("");
+      setVerifyCode("");
+      setStep(5);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -161,6 +202,8 @@ export function SignupFlow() {
       case 3:
         return "Account";
       case 4:
+        return "Verify";
+      case 5:
         return "Done";
       default:
         return "";
@@ -359,7 +402,7 @@ export function SignupFlow() {
                 ) : null}
               </span>
               <span className="font-[family-name:var(--font-outfit)] text-sm text-white/85">
-                Keep me signed in after account is created
+                Keep me signed in after verification
               </span>
             </label>
 
@@ -369,7 +412,7 @@ export function SignupFlow() {
                 disabled={loading}
                 className="rounded-md border border-[#F0BA19]/50 bg-[#F0BA19]/15 px-6 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-semibold text-[#F0BA19] transition hover:bg-[#F0BA19]/25 disabled:opacity-50"
               >
-                {loading ? "Creating…" : "Create account & continue"}
+                {loading ? "Creating…" : "Create account"}
               </button>
               <button
                 type="button"
@@ -383,6 +426,78 @@ export function SignupFlow() {
         )}
 
         {step === 4 && createdAccountId && (
+          <form onSubmit={handleConfirmVerification} className="text-left">
+            <h2 className="font-[family-name:var(--font-cinzel)] text-2xl font-bold text-[#F0BA19]">
+              Verify your email
+            </h2>
+            <p className="mt-3 font-[family-name:var(--font-outfit)] text-sm text-white/75">
+              We sent an <span className="text-white/90">8-digit code</span> to{" "}
+              <span className="text-[#F0BA19]/90">{signupEmail}</span>. Enter it below to
+              activate your account. You’ll be signed in automatically.
+            </p>
+            <p className="mt-2 font-[family-name:var(--font-outfit)] text-xs text-white/45">
+              Account ID:{" "}
+              <span className="font-mono text-[#F0BA19]/80">{createdAccountId}</span>
+            </p>
+
+            <div className="mt-6">
+              <label
+                htmlFor={verifyCodeId}
+                className="block font-[family-name:var(--font-outfit)] text-xs font-medium uppercase tracking-wider text-[#F0BA19]/90"
+              >
+                Verification code
+              </label>
+              <input
+                id={verifyCodeId}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={12}
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/[^\d\s]/g, ""))}
+                placeholder="12345678"
+                className={`${inputClass} mt-2 font-mono tracking-widest`}
+                disabled={loading}
+                required
+              />
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-md border border-[#F0BA19]/50 bg-[#F0BA19]/15 px-6 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-semibold text-[#F0BA19] transition hover:bg-[#F0BA19]/25 disabled:opacity-50"
+              >
+                {loading ? "Verifying…" : "Verify & sign in"}
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void handleResendCode()}
+                className="rounded-md border border-white/25 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/75 hover:bg-white/5 disabled:opacity-50"
+              >
+                Resend code
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(3);
+                  setVerifyCode("");
+                  setError(null);
+                }}
+                className="rounded-md border border-white/20 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/70 hover:bg-white/5"
+              >
+                Back
+              </button>
+            </div>
+            <p className="mt-4 font-[family-name:var(--font-outfit)] text-xs text-white/40">
+              Left this page? Sign in from the home page with your email and password —
+              you’ll be able to send a new code if you still need to verify.
+            </p>
+          </form>
+        )}
+
+        {step === 5 && createdAccountId && (
           <div className="text-left">
             <h2 className="font-[family-name:var(--font-cinzel)] text-2xl font-bold text-emerald-200">
               You’re set
@@ -392,15 +507,14 @@ export function SignupFlow() {
               <span className="font-mono text-[#F0BA19]">{createdAccountId}</span>
             </p>
             <p className="mt-2 font-[family-name:var(--font-outfit)] text-sm text-white/55">
-              If sign-in cookies were set, you’re logged in on this device. You can always
-              return to the home page to sign in again.
+              You’re signed in on this device. You can return to the home page anytime.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/"
                 className="inline-flex rounded-md border border-[#F0BA19]/50 bg-[#F0BA19]/15 px-6 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-semibold text-[#F0BA19] hover:bg-[#F0BA19]/25"
               >
-                Go to sign in
+                Continue
               </Link>
               <button
                 type="button"
@@ -409,6 +523,7 @@ export function SignupFlow() {
                   setCreatedAccountId(null);
                   setTermsOkThisSession(false);
                   setSignupEmail("");
+                  setVerifyCode("");
                   setError(null);
                   router.push("/signup");
                 }}
