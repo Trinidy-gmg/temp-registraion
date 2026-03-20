@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { LoginPanel } from "./components/LoginPanel";
 
 const HERO_POSTER = "https://hollowedoath.com/videos/hero-poster.jpg";
@@ -44,18 +43,6 @@ export default function Home() {
           <LoginPanel />
         </div>
       </main>
-
-      <footer className="relative z-10 px-6 pb-8 text-center">
-        <p className="font-[family-name:var(--font-outfit)] text-xs text-white/45">
-          © {new Date().getFullYear()} Hollowed Oath ·{" "}
-          <Link
-            href="https://hollowedoath.com/"
-            className="underline-offset-2 hover:text-white/70 hover:underline"
-          >
-            hollowedoath.com
-          </Link>
-        </p>
-      </footer>
     </div>
   );
 }
