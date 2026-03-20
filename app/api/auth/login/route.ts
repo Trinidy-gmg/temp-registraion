@@ -67,5 +67,35 @@ export async function POST(request: Request) {
   }
 
   const data = result.data as LoginTokens;
-  return jsonWithAuthCookies(data, keepMeSignedIn);
+  try {
+    return jsonWithAuthCookies(data, keepMeSignedIn);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[auth/login] session cookies", msg, {
+      hasAccess: typeof data?.access_token === "string" && data.access_token.length > 0,
+      hasRefresh: typeof data?.refresh_token === "string" && data.refresh_token.length > 0,
+      accountId: typeof data?.account_id === "string" ? data.account_id : "(missing)",
+    });
+    if (
+      msg === "LOGIN_RESPONSE_MISSING_TOKENS" ||
+      msg === "LOGIN_RESPONSE_MISSING_ACCOUNT_ID"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Auth service login response was incomplete (tokens or account_id). Check AdminSite → HAMS login JSON.",
+          code: "LOGIN_INCOMPLETE",
+        },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json(
+      {
+        error: "Could not set session cookies. Try again.",
+        code: "SESSION_COOKIE_ERROR",
+        hint: msg.slice(0, 160),
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 import { TermsLoremArticle } from "@/app/components/TermsLoremArticle";
 import { useScrollNearBottom } from "@/hooks/use-scroll-near-bottom";
+import { fetchLoginAfterVerification } from "@/lib/client-login-after-verify";
 import { hasTermsScrollAck, setTermsScrollAck } from "@/lib/terms-ack";
 
 const TOTAL_STEPS = 5;
@@ -197,15 +198,25 @@ export function SignupFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({
-          code,
-          password: signupPassword,
-          keepMeSignedIn,
-        }),
+        cache: "no-store",
+        body: JSON.stringify({ code }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || `Verification failed (${res.status})`);
+      }
+      const email = signupEmail.trim();
+      const password = signupPassword;
+      const login = await fetchLoginAfterVerification({
+        email,
+        password,
+        keepMeSignedIn,
+      });
+      if (!login.ok) {
+        throw new Error(
+          login.message ||
+            "Email verified, but sign-in failed. Try signing in from the home page."
+        );
       }
       setSignupPassword("");
       setSignupConfirm("");

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
+import { fetchLoginAfterVerification } from "@/lib/client-login-after-verify";
 
 const KMSI_STORAGE_KEY = "ho-keep-me-signed-in";
 
@@ -141,17 +142,25 @@ export function SignInForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({
-          code,
-          password,
-          keepMeSignedIn,
-        }),
+        cache: "no-store",
+        body: JSON.stringify({ code }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || `Verification failed (${res.status})`);
       }
-      setSuccess(`Signed in. Account ID: ${data.account_id as string}`);
+      const login = await fetchLoginAfterVerification({
+        email: email.trim(),
+        password,
+        keepMeSignedIn,
+      });
+      if (!login.ok) {
+        throw new Error(
+          login.message ||
+            "Email verified, but sign-in failed. Try signing in again."
+        );
+      }
+      setSuccess(`Signed in. Account ID: ${login.account_id}`);
       resetVerificationUi();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
