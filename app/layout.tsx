@@ -17,7 +17,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Hollowed Oath — Sign in",
   description:
-    "Sign in to Hollowed Oath — a heroic fantasy MMORPG from God Mode Games.",
+    "Sign in to Hollowed Oath — a heroic fantasy MMORPG.",
   openGraph: {
     title: "Hollowed Oath — Sign in",
     description:

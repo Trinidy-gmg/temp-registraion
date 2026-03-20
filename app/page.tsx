@@ -31,20 +31,8 @@ export default function Home() {
         />
       </div>
 
-      <header className="relative z-10 flex justify-center px-6 pt-8 md:pt-10">
-        <Link
-          href="https://hollowedoath.com/"
-          className="font-[family-name:var(--font-cinzel)] text-sm font-semibold tracking-[0.35em] text-[#F0BA19] drop-shadow-[0_0_12px_rgba(240,186,25,0.4)] transition-opacity hover:opacity-90"
-        >
-          HOLLOWED OATH
-        </Link>
-      </header>
-
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-16 pt-6 text-center md:px-10">
-        <p className="font-[family-name:var(--font-outfit)] text-xs font-medium uppercase tracking-[0.2em] text-[#F0BA19]/85">
-          God Mode Games
-        </p>
-        <h1 className="mt-4 font-[family-name:var(--font-cinzel)] text-3xl font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-4xl md:text-5xl">
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-16 pt-12 text-center sm:pt-16 md:px-10">
+        <h1 className="font-[family-name:var(--font-cinzel)] text-3xl font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-4xl md:text-5xl">
           Sign in
         </h1>
         <p className="mt-3 max-w-md font-[family-name:var(--font-outfit)] text-sm leading-relaxed text-white/75 md:text-base">
@@ -55,26 +43,11 @@ export default function Home() {
         <div className="mt-8 w-full flex justify-center">
           <LoginPanel />
         </div>
-
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-5">
-          <Link
-            href="https://hollowedoath.com/"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#F0BA19]/50 bg-[#F0BA19]/10 px-8 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-semibold text-[#F0BA19] shadow-[0_0_12px_rgba(240,186,25,0.25)] transition hover:border-[#F0BA19] hover:bg-[#F0BA19]/20 hover:shadow-[0_0_20px_rgba(240,186,25,0.45)]"
-          >
-            Official site
-          </Link>
-          <Link
-            href="https://discord.gg/hollowedoath"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-white/20 bg-black/30 px-8 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-medium text-white/90 backdrop-blur-sm transition hover:border-white/35 hover:bg-black/45"
-          >
-            Discord
-          </Link>
-        </div>
       </main>
 
       <footer className="relative z-10 px-6 pb-8 text-center">
         <p className="font-[family-name:var(--font-outfit)] text-xs text-white/45">
-          © {new Date().getFullYear()} God Mode Games ·{" "}
+          © {new Date().getFullYear()} Hollowed Oath ·{" "}
           <Link
             href="https://hollowedoath.com/"
             className="underline-offset-2 hover:text-white/70 hover:underline"
