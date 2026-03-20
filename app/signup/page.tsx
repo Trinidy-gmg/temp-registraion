@@ -17,7 +17,7 @@ export default function SignupPage() {
             Sign up
           </h1>
           <p className="mt-3 font-[family-name:var(--font-outfit)] text-sm text-white/70 md:text-base">
-            Complete each step to create your Hollowed Oath account.
+            Create your Hollowed Oath account.
           </p>
         </div>
 

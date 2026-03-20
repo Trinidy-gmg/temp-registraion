@@ -201,19 +201,12 @@ export function SignupFlow() {
         {step === 1 && (
           <div className="text-left">
             <h2 className="font-[family-name:var(--font-cinzel)] text-2xl font-bold text-white">
-              Create your account
+              Welcome, Oathsworn
             </h2>
             <p className="mt-3 font-[family-name:var(--font-outfit)] text-sm leading-relaxed text-white/70">
-              You’ll move through a short flow: review demo terms (scroll to the end),
-              then choose your email and password. We’ll create your Hollowed Oath
-              identity and sign you in when possible.
+              You’re about to create your Hollowed Oath account — your identity for the
+              realm. Continue when you’re ready.
             </p>
-            <ul className="mt-5 list-inside list-disc space-y-2 font-[family-name:var(--font-outfit)] text-sm text-white/60">
-              <li>Step 1 — This overview</li>
-              <li>Step 2 — Read demo terms</li>
-              <li>Step 3 — Account details</li>
-              <li>Step 4 — Confirmation</li>
-            </ul>
             <div className="mt-8 flex flex-wrap gap-3">
               <button
                 type="button"
