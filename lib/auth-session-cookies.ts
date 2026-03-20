@@ -69,13 +69,33 @@ export function jsonWithAuthCookies(
   return res;
 }
 
+/**
+ * Best-effort: must not throw. Some Next/Vercel versions error if mixing
+ * multiple Set-Cookie ops; callers should still return the auth response if this fails.
+ */
 export function clearEmailVerifyCookie(res: NextResponse): void {
   const secure = process.env.NODE_ENV === "production";
-  res.cookies.set(EMAIL_VERIFY_COOKIE, "", {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+  try {
+    res.cookies.delete({
+      name: EMAIL_VERIFY_COOKIE,
+      path: "/",
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+    });
+    return;
+  } catch {
+    /* continue */
+  }
+  try {
+    res.cookies.set(EMAIL_VERIFY_COOKIE, "", {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+  } catch {
+    /* ignore — verify cookie will expire on its own */
+  }
 }
