@@ -2,6 +2,8 @@
 
 Minimal **Next.js** landing page for demoing Hollowed Oath account registration (form and HAMS wiring can be added later).
 
+**Look & feel:** Typography and colors match [hollowedoath.com](https://hollowedoath.com) (Cinzel + Outfit, gold `#F0BA19`, dark theme) using the same hero poster asset as the main site. The `/press-kit` path was not reachable from our checks (404); when it’s live, you can add a direct link.
+
 ## Local dev
 
 ```bash

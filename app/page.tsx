@@ -1,15 +1,93 @@
+import Image from "next/image";
+import Link from "next/link";
+
+const HERO_POSTER = "https://hollowedoath.com/videos/hero-poster.jpg";
+
 export default function Home() {
   return (
-    <main className="flex min-h-full flex-col items-center justify-center px-6 py-20 text-center">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Hollowed Oath
-      </h1>
-      <p className="mt-3 text-lg text-zinc-600 dark:text-zinc-400">
-        Registration demo
-      </p>
-      <p className="mt-6 max-w-sm text-sm text-zinc-500 dark:text-zinc-500">
-        Temporary landing page — account signup will be added here for demos.
-      </p>
-    </main>
+    <div className="relative flex min-h-svh flex-col">
+      {/* Hero art — same asset as hollowedoath.com OG / hero */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src={HERO_POSTER}
+          alt="Hollowed Oath — heroic fantasy MMORPG"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        {/* Gradients matching main site hero treatment */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/55 to-[hsl(30_8%_8%)]"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-[hsl(30_8%_8%)] via-transparent to-transparent opacity-90"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_hsl(30_8%_8%_/_0.65)_100%)]"
+          aria-hidden
+        />
+      </div>
+
+      <header className="relative z-10 flex justify-center px-6 pt-8 md:pt-10">
+        <Link
+          href="https://hollowedoath.com/"
+          className="font-[family-name:var(--font-cinzel)] text-sm font-semibold tracking-[0.35em] text-[#F0BA19] drop-shadow-[0_0_12px_rgba(240,186,25,0.4)] transition-opacity hover:opacity-90"
+        >
+          HOLLOWED OATH
+        </Link>
+      </header>
+
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-16 pt-8 text-center md:px-10">
+        <p className="font-[family-name:var(--font-outfit)] text-xs font-medium uppercase tracking-[0.2em] text-[#F0BA19]/85">
+          God Mode Games
+        </p>
+        <h1
+          className="mt-4 max-w-4xl font-[family-name:var(--font-cinzel)] text-4xl font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-5xl md:text-6xl lg:text-7xl"
+        >
+          Forge your oath
+        </h1>
+        <p className="mt-4 max-w-xl font-[family-name:var(--font-outfit)] text-base font-normal leading-relaxed text-white/80 md:text-lg">
+          A dark heroic fantasy MMORPG in the scarred Land of Orrathis. This page is for
+          demo account registration — the full experience lives on the official site.
+        </p>
+
+        <div
+          className="mt-10 max-w-md rounded-xl border border-[#F0BA19]/40 bg-[hsl(30_8%_11%_/_0.75)] px-6 py-6 shadow-[0_0_12px_rgba(240,186,25,0.15)] backdrop-blur-sm md:px-8"
+        >
+          <p className="font-[family-name:var(--font-outfit)] text-sm text-[var(--muted-foreground)]">
+            Registration form coming next. For trailers, press assets, and updates, visit
+            the main site — and check back when{" "}
+            <span className="text-[#F0BA19]/90">/press-kit</span> is live.
+          </p>
+        </div>
+
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-5">
+          <Link
+            href="https://hollowedoath.com/"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#F0BA19]/50 bg-[#F0BA19]/10 px-8 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-semibold text-[#F0BA19] shadow-[0_0_12px_rgba(240,186,25,0.25)] transition hover:border-[#F0BA19] hover:bg-[#F0BA19]/20 hover:shadow-[0_0_20px_rgba(240,186,25,0.45)]"
+          >
+            Official site
+          </Link>
+          <Link
+            href="https://discord.gg/hollowedoath"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-white/20 bg-black/30 px-8 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-medium text-white/90 backdrop-blur-sm transition hover:border-white/35 hover:bg-black/45"
+          >
+            Discord
+          </Link>
+        </div>
+      </main>
+
+      <footer className="relative z-10 px-6 pb-8 text-center">
+        <p className="font-[family-name:var(--font-outfit)] text-xs text-white/45">
+          © {new Date().getFullYear()} God Mode Games ·{" "}
+          <Link href="https://hollowedoath.com/" className="underline-offset-2 hover:text-white/70 hover:underline">
+            hollowedoath.com
+          </Link>
+        </p>
+      </footer>
+    </div>
   );
 }

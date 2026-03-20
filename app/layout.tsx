@@ -1,20 +1,36 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cinzel, Outfit } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
   subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Hollowed Oath — Registration demo",
-  description: "Temporary demo site for Hollowed Oath account registration.",
+  title: "Hollowed Oath — Registration",
+  description:
+    "Create your account for Hollowed Oath — a heroic fantasy MMORPG from God Mode Games.",
+  openGraph: {
+    title: "Hollowed Oath — Registration",
+    description:
+      "Forge your path in the Land of Orrathis. Account registration for Hollowed Oath.",
+    images: [
+      {
+        url: "https://hollowedoath.com/videos/hero-poster.jpg",
+        width: 1920,
+        height: 1080,
+        alt: "Hollowed Oath",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -23,11 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`dark ${cinzel.variable} ${outfit.variable} h-full`}>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }
