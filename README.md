@@ -1,6 +1,6 @@
 # RegistrationPage
 
-Minimal **Next.js** app with **sign-in** (`/`) and a **multi-step sign-up** flow (`/signup`) against **HAMS** (`POST /login`, `POST /register`). The browser never sees your HAMS API key — only server routes call HAMS with `HAMS_API_KEY`.
+Minimal **Next.js** app with **sign-in** (`/`) and a **multi-step sign-up** flow (`/signup`). Server routes call **AdminSite** `POST /api/auth/login` and `POST /api/auth/register`, which forward to **HAMS** with the API key kept on AdminSite. You only configure **`ADMINSITE_AUTH_BASE_URL`** on RegistrationPage (demo setup).
 
 **Look & feel:** Typography and colors match [hollowedoath.com](https://hollowedoath.com) (Cinzel + Outfit, gold `#F0BA19`, dark theme) using the same hero poster asset as the main site. The `/press-kit` path was not reachable from our checks (404); when it’s live, you can add a direct link.
 
@@ -19,11 +19,11 @@ Copy `.env.example` to `.env.local` for local dev:
 
 | Variable | Description |
 |----------|-------------|
-| `HAMS_API_URL` | HAMS base URL (no trailing slash), e.g. `http://localhost:3000` |
-| `HAMS_API_KEY` | Valid HAMS API key (`X-API-Key`) |
-| `HAMS_TERMS_VERSION` | Optional; sent as `terms_version` on register (default `1.0`) |
+| `ADMINSITE_AUTH_BASE_URL` | Public base URL of **AdminSite** (no trailing slash), e.g. `https://admin.example.com` or `http://localhost:3020`. RegistrationPage calls `{base}/api/auth/login` and `{base}/api/auth/register`. |
 
-On **Vercel**, add the same variables in Project → Settings → Environment Variables.
+**AdminSite** must have `HAMS_API_URL`, `HAMS_API_KEY`, and optionally `HAMS_TERMS_VERSION` so those routes can reach HAMS (see `ENV-VARIABLES-LIST.md` in the monorepo).
+
+On **Vercel** (RegistrationPage), set `ADMINSITE_AUTH_BASE_URL` in Project → Settings → Environment Variables.
 
 After sign-in, **access** and **refresh** tokens are stored in **httpOnly** cookies (`ho_access_token`, `ho_refresh_token`).
 

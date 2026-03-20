@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getHamsConfig, hamsPost } from "@/lib/hams-server";
+import { authBackendPost, getAuthBackendConfig } from "@/lib/auth-backend";
 
 type LoginOk = {
   access_token: string;
@@ -34,21 +34,21 @@ export async function POST(request: Request) {
   }
 
   try {
-    getHamsConfig();
+    getAuthBackendConfig();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
     console.error("[auth/login]", msg);
     return NextResponse.json({ error: "Server configuration error" }, { status: 503 });
   }
 
-  let result: Awaited<ReturnType<typeof hamsPost<LoginOk | LoginErr>>>;
+  let result: Awaited<ReturnType<typeof authBackendPost<LoginOk | LoginErr>>>;
   try {
-    result = await hamsPost<LoginOk | LoginErr>("/login", {
+    result = await authBackendPost<LoginOk | LoginErr>("login", {
       email,
       password,
     });
   } catch (e) {
-    console.error("[auth/login] HAMS request failed", e);
+    console.error("[auth/login] AdminSite auth request failed", e);
     return NextResponse.json(
       { error: "Could not reach authentication service" },
       { status: 502 }
