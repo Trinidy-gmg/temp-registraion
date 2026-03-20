@@ -168,7 +168,7 @@ export function SignupFlow() {
   }
 
   return (
-    <div className="w-full max-w-lg">
+    <div className="w-full max-w-3xl">
       <div className="mb-8 flex items-center justify-between gap-2">
         {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((n) => (
           <div key={n} className="flex flex-1 flex-col items-center gap-1">

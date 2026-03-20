@@ -12,7 +12,7 @@ export default function SignupPage() {
   return (
     <HeroBackdrop>
       <main className="relative z-10 flex flex-1 flex-col items-center px-6 pb-24 pt-12 sm:pt-16 md:px-10">
-        <div className="mb-8 w-full max-w-lg text-center">
+        <div className="mb-8 w-full max-w-3xl text-center">
           <h1 className="font-[family-name:var(--font-cinzel)] text-3xl font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-4xl">
             Sign up
           </h1>
@@ -23,7 +23,7 @@ export default function SignupPage() {
 
         <Suspense
           fallback={
-            <div className="h-96 w-full max-w-lg animate-pulse rounded-xl border border-[#F0BA19]/20 bg-black/20" />
+            <div className="h-96 w-full max-w-3xl animate-pulse rounded-xl border border-[#F0BA19]/20 bg-black/20" />
           }
         >
           <SignupFlow />
