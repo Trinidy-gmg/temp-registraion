@@ -1,6 +1,6 @@
 # RegistrationPage
 
-Minimal **Next.js** app with **sign-in** and **sign-up** against **HAMS** (`POST /login`, `POST /register`). The browser never sees your HAMS API key — only server routes call HAMS with `HAMS_API_KEY`.
+Minimal **Next.js** app with **sign-in** (`/`) and a **multi-step sign-up** flow (`/signup`) against **HAMS** (`POST /login`, `POST /register`). The browser never sees your HAMS API key — only server routes call HAMS with `HAMS_API_KEY`.
 
 **Look & feel:** Typography and colors match [hollowedoath.com](https://hollowedoath.com) (Cinzel + Outfit, gold `#F0BA19`, dark theme) using the same hero poster asset as the main site. The `/press-kit` path was not reachable from our checks (404); when it’s live, you can add a direct link.
 
@@ -29,7 +29,9 @@ After sign-in, **access** and **refresh** tokens are stored in **httpOnly** cook
 
 ### Demo terms gate
 
-**`/terms`** shows placeholder (lorem ipsum) text. Users must **scroll to the bottom** before **Continue to create account** enables. That sets `localStorage` (`ho_terms_scroll_ack_v1`) so the **Create account** tab and form can be used. Sign-in is not gated.
+- **`/`** — Sign in only, with a **Create an account** link to **`/signup`**.
+- **`/signup`** — Wizard: welcome → read demo terms (scroll page to bottom) → account (email / password / confirm, optional “keep me signed in”) → success. Visiting **`/signup?from=terms`** jumps to the account step only if **`/terms`** (or the flow’s terms step) already set the scroll ack in `localStorage` (`ho_terms_scroll_ack_v1`).
+- **`/terms`** — Standalone terms page with the same lorem content; **Continue** sets the ack and sends users to **`/signup?from=terms`** (or a safe same-origin `?next=` path if you pass one). Sign-in is not gated.
 
 ## Free hosting
 
