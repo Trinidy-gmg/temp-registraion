@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { fetchLoginAfterVerification } from "@/lib/client-login-after-verify";
 
@@ -12,6 +13,7 @@ const inputClass =
 type VerifyPhase = "none" | "awaiting_send" | "code";
 
 export function SignInForm() {
+  const router = useRouter();
   const emailId = useId();
   const passwordId = useId();
   const kmsiId = useId();
@@ -61,6 +63,7 @@ export function SignInForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
+        cache: "no-store",
         body: JSON.stringify({
           email: email.trim(),
           password,
@@ -72,6 +75,8 @@ export function SignInForm() {
         code?: string;
         account_id?: string;
         ok?: boolean;
+        hint?: string;
+        keys?: string[];
       };
       if (!res.ok) {
         if (data.code === "EMAIL_NOT_VERIFIED") {
@@ -82,9 +87,15 @@ export function SignInForm() {
           );
           return;
         }
-        throw new Error(data.error || `Sign in failed (${res.status})`);
+        const detail = [data.code, data.hint, data.keys?.length ? `keys: ${data.keys.join(",")}` : ""]
+          .filter(Boolean)
+          .join(" — ");
+        throw new Error(
+          [data.error || `Sign in failed (${res.status})`, detail].filter(Boolean).join(" ")
+        );
       }
-      setSuccess(`Signed in. Account ID: ${(data as { account_id: string }).account_id}`);
+      router.replace("/logged-in");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
     } finally {
@@ -117,8 +128,9 @@ export function SignInForm() {
         return;
       }
       if (data.ok && data.account_id) {
-        setSuccess(`Signed in. Account ID: ${data.account_id}`);
         resetVerificationUi();
+        router.replace("/logged-in");
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send code");
@@ -160,8 +172,9 @@ export function SignInForm() {
             "Email verified, but sign-in failed. Try signing in again."
         );
       }
-      setSuccess(`Signed in. Account ID: ${login.account_id}`);
       resetVerificationUi();
+      router.replace("/logged-in");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {

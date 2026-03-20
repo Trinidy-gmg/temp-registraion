@@ -8,6 +8,8 @@ export type LoginJson = {
   account_id?: string;
   error?: string;
   code?: string;
+  hint?: string;
+  keys?: string[];
 };
 
 export async function fetchLoginAfterVerification(opts: {
@@ -16,7 +18,7 @@ export async function fetchLoginAfterVerification(opts: {
   keepMeSignedIn: boolean;
 }): Promise<
   | { ok: true; account_id: string }
-  | { ok: false; message: string; code?: string }
+  | { ok: false; message: string; code?: string; hint?: string }
 > {
   const { email, password, keepMeSignedIn } = opts;
 
@@ -39,10 +41,16 @@ export async function fetchLoginAfterVerification(opts: {
   }
 
   if (!res.ok) {
+    const parts = [
+      data.error || `Sign in failed (${res.status})`,
+      data.code ? `[${data.code}]` : "",
+      data.hint ? data.hint.slice(0, 240) : "",
+    ].filter(Boolean);
     return {
       ok: false,
-      message: data.error || `Sign in failed (${res.status})`,
+      message: parts.join(" "),
       code: data.code,
+      hint: data.hint,
     };
   }
 

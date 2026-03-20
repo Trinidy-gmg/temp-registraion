@@ -8,7 +8,7 @@ import { useScrollNearBottom } from "@/hooks/use-scroll-near-bottom";
 import { fetchLoginAfterVerification } from "@/lib/client-login-after-verify";
 import { hasTermsScrollAck, setTermsScrollAck } from "@/lib/terms-ack";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 const inputClass =
   "w-full rounded-md border border-[#F0BA19]/25 bg-black/40 px-3.5 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white placeholder:text-white/35 outline-none transition focus:border-[#F0BA19]/70 focus:ring-2 focus:ring-[#F0BA19]/25";
@@ -221,7 +221,8 @@ export function SignupFlow() {
       setSignupPassword("");
       setSignupConfirm("");
       setVerifyCode("");
-      setStep(5);
+      router.replace("/logged-in");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
@@ -239,8 +240,6 @@ export function SignupFlow() {
         return "Account";
       case 4:
         return "Verify";
-      case 5:
-        return "Done";
       default:
         return "";
     }
@@ -542,44 +541,6 @@ export function SignupFlow() {
           </form>
         )}
 
-        {step === 5 && createdAccountId && (
-          <div className="text-left">
-            <h2 className="font-[family-name:var(--font-cinzel)] text-2xl font-bold text-emerald-200">
-              You’re set
-            </h2>
-            <p className="mt-3 font-[family-name:var(--font-outfit)] text-sm text-white/75">
-              Your account ID (HRID):{" "}
-              <span className="font-mono text-[#F0BA19]">{createdAccountId}</span>
-            </p>
-            <p className="mt-2 font-[family-name:var(--font-outfit)] text-sm text-white/55">
-              You’re signed in on this device. You can return to the home page anytime.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/"
-                className="inline-flex rounded-md border border-[#F0BA19]/50 bg-[#F0BA19]/15 px-6 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-semibold text-[#F0BA19] hover:bg-[#F0BA19]/25"
-              >
-                Continue
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep(1);
-                  setCreatedAccountId(null);
-                  setTermsOkThisSession(false);
-                  setSignupEmail("");
-                  setVerifyCode("");
-                  setError(null);
-                  setVerifyNotice(null);
-                  router.push("/signup");
-                }}
-                className="rounded-md border border-white/20 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/70 hover:bg-white/5"
-              >
-                Register another (demo)
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
