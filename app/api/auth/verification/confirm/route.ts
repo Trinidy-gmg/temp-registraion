@@ -69,7 +69,19 @@ export async function POST(request: Request) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
     console.error("[verification/confirm]", msg);
-    return NextResponse.json({ error: "Server configuration error" }, { status: 503 });
+    return NextResponse.json(
+      {
+        error:
+          msg === "ADMINSITE_AUTH_BASE_URL is not configured"
+            ? "RegistrationPage: set ADMINSITE_AUTH_BASE_URL (server env)."
+            : "Server configuration error",
+        code:
+          msg === "ADMINSITE_AUTH_BASE_URL is not configured"
+            ? "AUTH_BACKEND_NOT_CONFIGURED"
+            : undefined,
+      },
+      { status: 503 }
+    );
   }
 
   const marked = await authBackendMarkEmailVerified(payload.aid);

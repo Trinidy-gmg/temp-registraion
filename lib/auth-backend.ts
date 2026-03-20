@@ -60,23 +60,57 @@ export async function authBackendMarkEmailVerified(
   };
   if (secret) {
     headers["X-Registration-Verify-Secret"] = secret;
+  } else if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "[auth-backend] REGISTRATION_VERIFY_SECRET is empty; AdminSite production mark-email-verified will return 503."
+    );
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ account_id: accountId }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ account_id: accountId }),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[auth-backend] mark-email-verified fetch failed", msg);
+    return {
+      ok: false,
+      status: 502,
+      data: {
+        error: `Could not reach AdminSite (${baseUrl}): ${msg}. Check ADMINSITE_AUTH_BASE_URL, DNS/TLS, and that the host allows requests from Vercel.`,
+        code: "ADMIN_SITE_UNREACHABLE",
+      },
+    };
+  }
 
-  const data = (await res.json().catch(() => ({}))) as
-    | MarkVerifiedOk
-    | MarkVerifiedErr;
+  const rawText = await res.text();
+  let data = {} as MarkVerifiedOk | MarkVerifiedErr;
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText) as MarkVerifiedOk | MarkVerifiedErr;
+    } catch {
+      data = {
+        error: `AdminSite returned ${res.status} with non-JSON body: ${rawText.slice(0, 180)}`,
+        code: "ADMIN_SITE_BAD_RESPONSE",
+      };
+    }
+  }
 
   if (!res.ok) {
+    const err = data as MarkVerifiedErr;
+    if (!err.error) {
+      err.error =
+        res.status === 503
+          ? "AdminSite returned 503 (often: REGISTRATION_VERIFY_SECRET or HAMS_API_URL/HAMS_API_KEY missing on AdminSite in production — set env and redeploy AdminSite)."
+          : `AdminSite mark-email-verified failed (${res.status}).`;
+    }
     return {
       ok: false,
       status: res.status,
-      data: data as MarkVerifiedErr,
+      data: err,
     };
   }
   return { ok: true, status: res.status, data: data as MarkVerifiedOk };
