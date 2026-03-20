@@ -15,11 +15,31 @@ export type LoginTokens = {
 /**
  * Sets httpOnly auth cookies and returns a JSON body safe for the browser (no tokens).
  */
+function safeCookieMaxAge(seconds: number, fallback: number): number {
+  const n = Math.floor(Number(seconds));
+  if (!Number.isFinite(n) || n < 60) return fallback;
+  if (n > 60 * 60 * 24 * 400) return 60 * 60 * 24 * 400; /* cap ~400d */
+  return n;
+}
+
 export function jsonWithAuthCookies(
   data: LoginTokens,
   keepMeSignedIn: boolean
 ): NextResponse {
-  const accessMaxAge = Math.max(60, Number(data.expires_in) || 900);
+  const accessTok =
+    typeof data.access_token === "string" ? data.access_token.trim() : "";
+  const refreshTok =
+    typeof data.refresh_token === "string" ? data.refresh_token.trim() : "";
+  const accountId =
+    typeof data.account_id === "string" ? data.account_id.trim() : "";
+  if (!accessTok || !refreshTok) {
+    throw new Error("LOGIN_RESPONSE_MISSING_TOKENS");
+  }
+  if (!accountId) {
+    throw new Error("LOGIN_RESPONSE_MISSING_ACCOUNT_ID");
+  }
+
+  const accessMaxAge = safeCookieMaxAge(Number(data.expires_in), 900);
   const refreshMaxAge = keepMeSignedIn
     ? 60 * 60 * 24 * 30
     : 60 * 60 * 24 * 7;
@@ -27,18 +47,18 @@ export function jsonWithAuthCookies(
   const secure = process.env.NODE_ENV === "production";
   const res = NextResponse.json({
     ok: true as const,
-    account_id: data.account_id,
-    token_type: data.token_type,
+    account_id: accountId,
+    token_type: data.token_type ?? "Bearer",
   });
 
-  res.cookies.set(ACCESS_COOKIE, data.access_token, {
+  res.cookies.set(ACCESS_COOKIE, accessTok, {
     httpOnly: true,
     secure,
     sameSite: "lax",
     path: "/",
     maxAge: accessMaxAge,
   });
-  res.cookies.set(REFRESH_COOKIE, data.refresh_token, {
+  res.cookies.set(REFRESH_COOKIE, refreshTok, {
     httpOnly: true,
     secure,
     sameSite: "lax",

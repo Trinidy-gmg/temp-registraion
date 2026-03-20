@@ -123,7 +123,41 @@ export async function POST(request: Request) {
     );
   }
 
-  const res = jsonWithAuthCookies(loginResult.data as LoginTokens, keepMeSignedIn);
-  clearEmailVerifyCookie(res);
-  return res;
+  const tokens = loginResult.data as LoginTokens;
+  try {
+    const res = jsonWithAuthCookies(tokens, keepMeSignedIn);
+    clearEmailVerifyCookie(res);
+    return res;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[verification/confirm] session cookies", msg, {
+      hasAccess: typeof tokens?.access_token === "string" && tokens.access_token.length > 0,
+      hasRefresh: typeof tokens?.refresh_token === "string" && tokens.refresh_token.length > 0,
+      accountId: typeof tokens?.account_id === "string" ? tokens.account_id : "(missing)",
+      keys:
+        tokens && typeof tokens === "object"
+          ? Object.keys(tokens as object).join(",")
+          : "",
+    });
+    if (
+      msg === "LOGIN_RESPONSE_MISSING_TOKENS" ||
+      msg === "LOGIN_RESPONSE_MISSING_ACCOUNT_ID"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Email was verified, but the auth service login response was incomplete (tokens or account_id). Check AdminSite → HAMS login JSON.",
+          code: "LOGIN_INCOMPLETE",
+        },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json(
+      {
+        error: "Could not complete sign-in (session). Try again or sign in from the home page.",
+        code: "SESSION_COOKIE_ERROR",
+      },
+      { status: 500 }
+    );
+  }
 }
