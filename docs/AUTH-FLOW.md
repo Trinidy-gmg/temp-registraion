@@ -135,6 +135,10 @@ All use `path: /`, `sameSite: lax`, `secure` in production.
 
 ## Server logs (Vercel)
 
+**Deployment check:** open `GET /api/auth/login` in the browser. You should see JSON `{ ok: true, route: "/api/auth/login", runtime: "nodejs", ... }`. If that 500s, the problem is outside the POST handler.
+
+**Import chain:** `app/api/auth/login` must not load `email-verify-session.ts` (it pulls Node `crypto`). Cookie names live in **`lib/ho-cookie-names.ts`**; `auth-session-cookies.ts` imports from there so login stays lightweight.
+
 Every `POST /api/auth/login` emits **`[auth/login]`** lines: `start`, `body_ok` (email domain hint only — **never** the password), `ADMINSITE configured`, `AdminSite response`, `setting cookies` (token **lengths** only), `success`, or errors.
 
 Set **`REGISTRATION_DEBUG_AUTH=1`** on the Vercel project for extra **`[auth-backend]`** logs (`fetch_start` / `fetch_done` with status, `content-type`, response body length, top-level JSON keys).

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
-import { EMAIL_VERIFY_COOKIE } from "@/lib/email-verify-session";
+import {
+  ACCESS_COOKIE,
+  EMAIL_VERIFY_COOKIE,
+  REFRESH_COOKIE,
+} from "@/lib/ho-cookie-names";
 
-export const ACCESS_COOKIE = "ho_access_token";
-export const REFRESH_COOKIE = "ho_refresh_token";
+export { ACCESS_COOKIE, REFRESH_COOKIE };
 
 export type LoginTokens = {
   access_token: string;

@@ -12,6 +12,16 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Proves this deployment serves the App Router login route (check Network tab). */
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "/api/auth/login",
+    runtime: "nodejs",
+    ts: new Date().toISOString(),
+  });
+}
+
 const DEBUG_AUTH = process.env.REGISTRATION_DEBUG_AUTH === "1";
 
 /** Log without full email (PII). */
@@ -30,6 +40,8 @@ type LoginErr = {
 export async function POST(request: Request) {
   const reqId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   try {
+    /* Vercel “Logs” often surface stderr first — use error level for breadcrumbs */
+    console.error("[auth/login] POST enter", { reqId });
     console.info("[auth/login] start", { reqId });
 
     let body: { email?: string; password?: string; keepMeSignedIn?: boolean };

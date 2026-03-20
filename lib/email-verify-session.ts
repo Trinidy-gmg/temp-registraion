@@ -5,7 +5,7 @@
 
 import { createHash, createHmac, randomInt, timingSafeEqual } from "crypto";
 
-export const EMAIL_VERIFY_COOKIE = "ho_email_verify";
+export { EMAIL_VERIFY_COOKIE } from "@/lib/ho-cookie-names";
 
 export type EmailVerifyPayload = {
   v: 1;
