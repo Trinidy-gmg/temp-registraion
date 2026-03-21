@@ -6,9 +6,7 @@ export type SignInCredentialsResult =
   | { ok: true }
   | { ok: false; error: string; code?: string };
 
-/**
- * Establishes a NextAuth session via the Credentials provider (AdminSite → HAMS login on the server).
- */
+/** Establishes a NextAuth session after the server verifies email + password. */
 export async function signInWithCredentials(opts: {
   email: string;
   password: string;

@@ -64,8 +64,8 @@ export async function POST(request: Request) {
         {
           error:
             msg === "ADMINSITE_AUTH_BASE_URL is not configured"
-              ? "RegistrationPage: set ADMINSITE_AUTH_BASE_URL (server env)."
-              : "Server configuration error",
+              ? "Sign-in is temporarily unavailable. Please try again later."
+              : "Something went wrong on our end. Please try again later.",
           code:
             msg === "ADMINSITE_AUTH_BASE_URL is not configured"
               ? "AUTH_BACKEND_NOT_CONFIGURED"
@@ -107,9 +107,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Verification could not finish. Check Vercel logs for [verification/confirm] FATAL.",
+          "We couldn't finish verifying your email. Please try again, or request a new code.",
         code: "CONFIRM_FATAL",
-        hint: msg.slice(0, 200),
       },
       { status: 500 }
     );

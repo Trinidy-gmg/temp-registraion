@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-/**
- * JSON view of **this site's** session (the faux registration website).
- * Not AdminSite; not a raw HAMS bearer token — use this to confirm the browser is "logged in here".
- */
+/** JSON view of the signed-in Hollowed Oath account portal session (user id + email). */
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -12,29 +9,26 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json(
       {
-        site: "registration-demo",
+        site: "hollowed-oath-account-portal",
         authenticated: false,
         user: null,
-        message:
-          "No active session on this site. POST credentials via NextAuth from /login, or open /login in the browser.",
+        message: "No active session. Sign in at /login to access your account.",
       },
       { status: 401 }
     );
   }
 
   return NextResponse.json({
-    site: "registration-demo",
+    site: "hollowed-oath-account-portal",
     authenticated: true,
     user: {
       id: session.user.id,
       email: session.user.email ?? null,
     },
     session: {
-      kind: "next-auth-jwt",
-      storage: "httpOnly-cookie",
-      scope: "this-origin-only",
+      kind: "signed-in-portal",
       note:
-        "After your email/password are accepted by the account API, this site issues its own session cookie. That cookie is what makes you “signed in” to temp-registraion — separate from any AdminSite staff login.",
+        "You are signed in to the Hollowed Oath account portal. This record reflects your verified account profile.",
     },
   });
 }

@@ -40,7 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           getAuthBackendConfig();
         } catch {
-          console.error("[auth] ADMINSITE_AUTH_BASE_URL not configured");
+          console.error("[auth] account API base URL not configured");
           return null;
         }
 
@@ -51,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             password,
           });
         } catch (e) {
-          console.error("[auth] AdminSite login request failed", e);
+          console.error("[auth] account service login request failed", e);
           return null;
         }
 

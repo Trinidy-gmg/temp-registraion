@@ -1,8 +1,8 @@
 # RegistrationPage
 
-Minimal **Next.js** app with **sign-in** (`/`) and a **multi-step sign-up** flow (`/signup`). Server routes call **AdminSite** `POST /api/auth/login`, `POST /api/auth/register`, and `POST /api/auth/mark-email-verified`, which forward to **HAMS** with the API key kept on AdminSite.
+**Next.js** account portal for **Hollowed Oath**: landing (`/`), **sign-in** (`/login`), signed-in overview (`/signedin`), and **sign-up** (`/signup`) with email verification. Sessions use **NextAuth** (credentials verified against the game account API; see `docs/AUTH-FLOW.md` for architecture).
 
-After **register**, the user must enter an **8-digit code** emailed via **SendGrid**; then the app marks the email verified and sets sign-in cookies. **Abandoned sign-ups:** sign in with email + password — if HAMS returns `EMAIL_NOT_VERIFIED`, use **Email me a verification code** and complete the same code step.
+After **register**, the player enters an **8-digit code** from email; then they sign in to open their portal session. **Abandoned sign-ups:** sign in with email + password — if the account is still unverified, use **Email me a verification code** and complete the same step.
 
 **Look & feel:** Typography and colors match [hollowedoath.com](https://hollowedoath.com) (Cinzel + Outfit, gold `#F0BA19`, dark theme) using the same hero poster asset as the main site. The `/press-kit` path was not reachable from our checks (404); when it’s live, you can add a direct link.
 
@@ -31,11 +31,11 @@ Copy `.env.example` to `.env.local` for local dev:
 
 On **Vercel** (RegistrationPage), set `ADMINSITE_AUTH_BASE_URL` in Project → Settings → Environment Variables.
 
-After sign-in, **access** and **refresh** tokens are stored in **httpOnly** cookies (`ho_access_token`, `ho_refresh_token`).
+After sign-in, **NextAuth** stores an encrypted **httpOnly** session cookie (account id + email on this origin; see `auth.ts`).
 
 ### Demo terms gate
 
-- **`/`** — Sign in only, with a **Create an account** link to **`/signup`**.
+- **`/`** — Welcome / entry with links to **`/login`** and **`/signup`**.
 - **`/signup`** — Wizard: welcome → demo terms (scroll to bottom) → account → **email verification (8-digit code)** → success (signed in). Visiting **`/signup?from=terms`** jumps to the account step only if **`/terms`** already set the scroll ack in `localStorage` (`ho_terms_scroll_ack_v1`).
 - **`/terms`** — Standalone terms page with the same lorem content; **Continue** sets the ack and sends users to **`/signup?from=terms`** (or a safe same-origin `?next=` path if you pass one). Sign-in is not gated.
 

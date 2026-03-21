@@ -45,7 +45,7 @@ export async function fetchLoginAfterVerification(opts: {
     return {
       ok: false,
       message:
-        "Signed in but session has no account id. Try signing in again from the home page.",
+        "Sign-in didn't complete properly. Please try signing in again.",
     };
   }
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Old path; faux site uses `/signedin`. */
+/** Legacy URL — redirects to the account overview. */
 export default function LoggedInLegacyRedirect() {
   redirect("/signedin");
 }

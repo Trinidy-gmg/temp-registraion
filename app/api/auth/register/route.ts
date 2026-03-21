@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Registration verification is not configured (set SIGNUP_VERIFY_SECRET, min 16 characters).",
+          "New account registration is temporarily unavailable. Please try again later.",
       },
       { status: 503 }
     );
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       password,
     });
   } catch (e) {
-    console.error("[auth/register] AdminSite auth request failed", e);
+    console.error("[auth/register] account service request failed", e);
     return NextResponse.json(
       { error: "Could not reach authentication service" },
       { status: 502 }

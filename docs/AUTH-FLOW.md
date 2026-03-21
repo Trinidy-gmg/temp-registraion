@@ -98,7 +98,7 @@ HAMS (Account / JWT service)
 | `POST` | `/api/auth/verification/confirm` | Validate 8-digit code + mark verified |
 | `POST` | `/api/auth/verification/resend` | New code (cookie session) |
 | `POST` | `/api/auth/verification/resume` | Login attempt; if unverified, send code path; if verified, returns `ok` + `account_id` (client must `signIn`) |
-| `GET` | `/api/me` | JSON: authenticated + `user.id` / `user.email` for **this demo site** (same session as `/signedin`) |
+| `GET` | `/api/me` | JSON: authenticated + `user.id` / `user.email` for the signed-in portal session (same as `/signedin`) |
 | `GET` | `/api/auth/ping` | Health / deploy fingerprint (if present in repo) |
 
 ---

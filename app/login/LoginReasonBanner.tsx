@@ -12,7 +12,7 @@ export function LoginReasonBanner() {
         className="mt-4 max-w-lg rounded-md border border-amber-500/35 bg-amber-950/30 px-4 py-3 text-center font-[family-name:var(--font-outfit)] text-sm text-amber-100/95"
         role="status"
       >
-        Sign in to open the signed-in area of this demo site.
+        Please sign in to view your account.
       </p>
     );
   }

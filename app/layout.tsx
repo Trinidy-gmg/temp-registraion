@@ -17,13 +17,13 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: {
-    default: "Hollowed Oath — registration demo",
-    template: "%s | Hollowed Oath demo",
+    default: "Hollowed Oath — account portal",
+    template: "%s | Hollowed Oath",
   },
   description:
-    "Temp registration demo: log in to this site, then view your account on /signedin.",
+    "Sign in or create a Hollowed Oath account — heroic fantasy MMORPG.",
   openGraph: {
-    title: "Hollowed Oath — registration demo",
+    title: "Hollowed Oath — account portal",
     description:
       "Sign in or create an account for Hollowed Oath.",
     images: [

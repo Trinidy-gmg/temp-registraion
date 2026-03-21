@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       password,
     });
   } catch (e) {
-    console.error("[verification/resume] AdminSite auth request failed", e);
+    console.error("[verification/resume] account service request failed", e);
     return NextResponse.json(
       { error: "Could not reach authentication service" },
       { status: 502 }
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Auth service returned success but login payload was incomplete. Check AdminSite → HAMS /login JSON.",
+            "We couldn't complete sign-in. Please try again in a moment.",
           code: "LOGIN_INCOMPLETE",
           keys: coerced.keys,
         },

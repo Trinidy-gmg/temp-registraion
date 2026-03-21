@@ -43,15 +43,15 @@ export function SiteSessionApiPreview() {
   return (
     <div className="mt-6 rounded-md border border-white/15 bg-black/35 p-4 text-left">
       <p className="font-[family-name:var(--font-outfit)] text-xs font-medium uppercase tracking-wider text-white/45">
-        This site&apos;s session API
+        Account record
       </p>
       <p className="mt-1 font-[family-name:var(--font-outfit)] text-xs leading-relaxed text-white/50">
         <code className="text-[#F0BA19]/85">GET /api/me</code>
         {status != null ? (
           <span className="text-white/40"> — HTTP {status}</span>
         ) : null}{" "}
-        returns JSON for <strong className="text-white/70">this domain only</strong>
-        (your account id + email when signed in).
+        returns your <strong className="text-white/70">signed-in account</strong>{" "}
+        (id and email) for integrations and verification.
       </p>
       <pre className="mt-3 max-h-64 overflow-auto rounded border border-white/10 bg-black/50 p-3 font-mono text-[11px] leading-relaxed text-emerald-100/90">
         {text}

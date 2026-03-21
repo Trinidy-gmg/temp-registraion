@@ -1,6 +1,6 @@
 /**
- * Server-only: call AdminSite public auth routes (demo).
- * HAMS credentials stay on AdminSite; RegistrationPage only needs ADMINSITE_AUTH_BASE_URL.
+ * Server-only: call the configured account API base (`ADMINSITE_AUTH_BASE_URL`).
+ * Player-facing errors should stay generic; use logs for operator detail.
  */
 
 export function getAuthBackendConfig(): { baseUrl: string } {
@@ -77,7 +77,7 @@ export async function authBackendPost<T>(
           bodyPreview: text.slice(0, 200),
         });
         data = {
-          error: "AdminSite returned non-JSON body",
+          error: "The account service returned an unexpected response. Please try again.",
           code: "ADMIN_SITE_NON_JSON",
         };
       }
@@ -91,7 +91,7 @@ export async function authBackendPost<T>(
         bodyPreview: text.slice(0, 200),
       });
       data = {
-        error: `AdminSite returned ${ct || "non-JSON"} (${res.status})`,
+        error: "The account service returned an unexpected response. Please try again.",
         code: "ADMIN_SITE_NON_JSON",
       };
     }
@@ -163,7 +163,8 @@ export async function authBackendMarkEmailVerified(
       ok: false,
       status: 502,
       data: {
-        error: `Could not reach AdminSite (${baseUrl}): ${msg}. Check ADMINSITE_AUTH_BASE_URL, DNS/TLS, and that the host allows requests from Vercel.`,
+        error:
+          "We couldn't reach the account service. Please check your connection and try again.",
         code: "ADMIN_SITE_UNREACHABLE",
       },
     };
@@ -176,7 +177,7 @@ export async function authBackendMarkEmailVerified(
       data = JSON.parse(rawText) as MarkVerifiedOk | MarkVerifiedErr;
     } catch {
       data = {
-        error: `AdminSite returned ${res.status} with non-JSON body: ${rawText.slice(0, 180)}`,
+        error: "The account service returned an unexpected response. Please try again.",
         code: "ADMIN_SITE_BAD_RESPONSE",
       };
     }
@@ -187,8 +188,8 @@ export async function authBackendMarkEmailVerified(
     if (!err.error) {
       err.error =
         res.status === 503
-          ? "AdminSite returned 503 (often: REGISTRATION_VERIFY_SECRET or HAMS_API_URL/HAMS_API_KEY missing on AdminSite in production — set env and redeploy AdminSite)."
-          : `AdminSite mark-email-verified failed (${res.status}).`;
+          ? "Email verification is temporarily unavailable. Please try again in a few minutes."
+          : "We couldn't complete email verification. Please try again.";
     }
     return {
       ok: false,

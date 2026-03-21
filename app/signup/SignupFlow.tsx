@@ -131,7 +131,7 @@ export function SignupFlow() {
       // New flow never logs in here — old deployments only return { account_id } without this flag.
       if (regData.verification_required !== true) {
         setError(
-          "Your account may have been created, but this site is not running the email-verification registration API (or it failed to start). Redeploy the latest RegistrationPage (including `app/api/auth/register`) and set SIGNUP_VERIFY_SECRET + SendGrid env vars. Unverified sign-in only applies from the home page."
+          "Your account may have been created, but we couldn't start email verification. Please try signing in — you may be able to request a new verification code from the sign-in page."
         );
         setCreatedAccountId(accountId);
         setVerifyNotice(null);
@@ -145,7 +145,7 @@ export function SignupFlow() {
       if (regData.verification_email_sent === false) {
         setVerifyNotice(
           (regData.verification_email_error as string | undefined) ||
-            "We created your account, but the verification email could not be sent. Check SendGrid env vars, then tap “Resend code” below."
+            "We created your account, but the verification email couldn't be sent. Tap “Resend code” below, or try again in a few minutes."
         );
       } else {
         setVerifyNotice(null);
