@@ -82,10 +82,9 @@ HAMS (Account / JWT service)
 6. **AdminSite** returns that JSON (same status as HAMS, typically 200).
 7. **RegistrationPage**:
    - Coerces shape via `coerceLoginTokens()` (snake_case / camelCase / optional `{ data: … }` wrapper).
-   - Builds `NextResponse.json({ ok: true, account_id, token_type })`.
-   - Sets **httpOnly** cookies:
-     - `ho_access_token`
-     - `ho_refresh_token`
+   - Sets **httpOnly** cookies via **`cookies()` from `next/headers`** (`jsonWithAuthCookiesHeaders`) — avoids Vercel/Next issues some deployments see when calling `NextResponse.cookies.set` twice on the same response.
+   - Returns `NextResponse.json({ ok: true, account_id, token_type })` (no tokens in JSON).
+   - Cookie names: `ho_access_token`, `ho_refresh_token`.
 8. **Browser** follows redirect or UI navigation to **`/logged-in`** (after this change).
 9. **`/logged-in`** (server):
    - Reads `ho_access_token` via `cookies()`.

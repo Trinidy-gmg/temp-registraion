@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       authBackendBaseHost,
       getAuthBackendConfig,
     } = authBackend;
-    const { coerceLoginTokens, jsonWithAuthCookies } = sessionCookies;
+    const { coerceLoginTokens, jsonWithAuthCookiesHeaders } = sessionCookies;
 
     let body: { email?: string; password?: string; keepMeSignedIn?: boolean };
     try {
@@ -242,7 +242,10 @@ export async function POST(request: Request) {
         refreshLen: coerced.tokens.refresh_token.length,
         keepMeSignedIn,
       });
-      const out = jsonWithAuthCookies(coerced.tokens, keepMeSignedIn);
+      const out = await jsonWithAuthCookiesHeaders(
+        coerced.tokens,
+        keepMeSignedIn
+      );
       out.headers.set("x-login-req-id", reqId);
       console.info("[auth/login] success", { reqId });
       return out;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authBackendPost, getAuthBackendConfig } from "@/lib/auth-backend";
 import {
   coerceLoginTokens,
-  jsonWithAuthCookies,
+  jsonWithAuthCookiesHeaders,
 } from "@/lib/auth-session-cookies";
 import {
   EMAIL_VERIFY_COOKIE,
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       );
     }
     try {
-      return jsonWithAuthCookies(coerced.tokens, keepMeSignedIn);
+      return await jsonWithAuthCookiesHeaders(coerced.tokens, keepMeSignedIn);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verification/resume] session cookies", msg);
