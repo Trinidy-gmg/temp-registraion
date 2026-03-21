@@ -161,19 +161,72 @@ function buildAuthSetCookieHeader(
   return parts.join("; ");
 }
 
+/**
+ * Vercel / edge proxies often cap total response headers (~8KB). Two full JWTs in
+ * Set-Cookie can exceed that and surface as a generic 500 with no JSON body.
+ */
+const DEFAULT_MAX_SET_COOKIE_BYTES = 7500;
+
+export function authCookieSetCookieByteLength(
+  f: AuthCookieFields,
+  secure: boolean
+): number {
+  const h1 = buildAuthSetCookieHeader(
+    ACCESS_COOKIE,
+    f.accessTok,
+    f.accessMaxAge,
+    secure
+  );
+  const h2 = buildAuthSetCookieHeader(
+    REFRESH_COOKIE,
+    f.refreshTok,
+    f.refreshMaxAge,
+    secure
+  );
+  /* Two header lines + newline overhead (conservative). */
+  return h1.length + h2.length + 8;
+}
+
+/** Public: approximate bytes for both Set-Cookie lines (for logs / limits). */
+export function estimateAuthSetCookieBytes(
+  data: LoginTokens,
+  keepMeSignedIn: boolean
+): number {
+  const f = assertAuthCookieFields(data, keepMeSignedIn);
+  const secure = process.env.NODE_ENV === "production";
+  return authCookieSetCookieByteLength(f, secure);
+}
+
 function appendAuthSetCookieHeaders(
   res: NextResponse,
   f: AuthCookieFields,
   secure: boolean
 ): void {
-  res.headers.append(
-    "Set-Cookie",
-    buildAuthSetCookieHeader(ACCESS_COOKIE, f.accessTok, f.accessMaxAge, secure)
+  const h1 = buildAuthSetCookieHeader(
+    ACCESS_COOKIE,
+    f.accessTok,
+    f.accessMaxAge,
+    secure
   );
-  res.headers.append(
-    "Set-Cookie",
-    buildAuthSetCookieHeader(REFRESH_COOKIE, f.refreshTok, f.refreshMaxAge, secure)
+  const h2 = buildAuthSetCookieHeader(
+    REFRESH_COOKIE,
+    f.refreshTok,
+    f.refreshMaxAge,
+    secure
   );
+  const raw = h1.length + h2.length + 8;
+  const maxRaw = (() => {
+    const n = Number(process.env.REGISTRATION_MAX_SET_COOKIE_BYTES);
+    if (Number.isFinite(n) && n > 1000) return Math.floor(n);
+    return DEFAULT_MAX_SET_COOKIE_BYTES;
+  })();
+  if (raw > maxRaw) {
+    throw new Error(
+      `LOGIN_COOKIE_HEADERS_TOO_LARGE:bytes=${raw};max=${maxRaw};accessLen=${f.accessTok.length};refreshLen=${f.refreshTok.length}`
+    );
+  }
+  res.headers.append("Set-Cookie", h1);
+  res.headers.append("Set-Cookie", h2);
 }
 
 /** Sets auth cookies via `Set-Cookie` headers (Vercel-safe). */
@@ -190,6 +243,10 @@ export function jsonWithAuthCookiesHeaders(
   });
   appendAuthSetCookieHeaders(res, f, secure);
   res.headers.set("x-auth-cookies", "set-cookie-append");
+  res.headers.set(
+    "x-auth-cookie-bytes",
+    String(authCookieSetCookieByteLength(f, secure))
+  );
   return res;
 }
 

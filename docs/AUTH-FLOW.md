@@ -146,7 +146,17 @@ All use `path: /`, `sameSite: lax`, `secure` in production.
 
 Response includes **`gitSha`** (from `VERCEL_GIT_COMMIT_SHA`) so you can confirm the live build matches GitHub.
 
-**After deploy:** every `POST /api/auth/login` response includes header **`x-login-req-id`** (correlate with Vercel logs). If dynamic import of auth modules fails, body is `{ code: "LOGIN_LOAD_FAILED", hint: "…" }` instead of a generic Next error.
+**After deploy:** every `POST /api/auth/login` response includes:
+
+- **`x-login-req-id`** — correlate with Vercel logs.
+- **`x-login-stage`** — where the handler stopped, e.g. `upstream_error` (AdminSite/HAMS failed), `ok` (cookies sent), `headers_too_large` (Set-Cookie bytes exceeded proxy limit), `session_cookie_error`, `fatal`.
+- **`x-adminsite-status`** — when `x-login-stage` is `upstream_error`, the HTTP status from AdminSite (e.g. `401`, `500`).
+
+If **`x-login-stage: upstream_error`** and **`x-adminsite-status: 500`**, fix **AdminSite → HAMS** (not the RegistrationPage form). Two full JWTs in `Set-Cookie` can exceed **~8KB total response headers** on some hosts; then the edge returns a **generic 500** with no JSON — see **`LOGIN_COOKIE_HEADERS_TOO_LARGE`** / env **`REGISTRATION_MAX_SET_COOKIE_BYTES`** (default `7500`).
+
+**Debug:** set **`REGISTRATION_SKIP_AUTH_COOKIES=1`** on Vercel to return **200** without cookies — confirms RegistrationPage + AdminSite + token JSON shape. Remove after testing.
+
+If dynamic import of auth modules fails, body is `{ code: "LOGIN_LOAD_FAILED", hint: "…" }`.
 
 **Import chain:** `app/api/auth/login` must not load `email-verify-session.ts` (it pulls Node `crypto`). Cookie names live in **`lib/ho-cookie-names.ts`**; `auth-session-cookies.ts` imports from there so login stays lightweight.
 

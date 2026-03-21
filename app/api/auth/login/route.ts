@@ -7,27 +7,39 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function withReqId(res: NextResponse, reqId: string): NextResponse {
+function withLoginMeta(
+  res: NextResponse,
+  reqId: string,
+  meta?: { stage: string; adminsiteStatus?: number }
+): NextResponse {
   res.headers.set("x-login-req-id", reqId);
+  if (meta?.stage) {
+    res.headers.set("x-login-stage", meta.stage);
+  }
+  if (meta?.adminsiteStatus != null) {
+    res.headers.set("x-adminsite-status", String(meta.adminsiteStatus));
+  }
   return res;
 }
 
 /** Proves this deployment serves the App Router login route (check Network tab). */
 export async function GET() {
   const reqId = `get-${Date.now().toString(36)}`;
-  return withReqId(
+  return withLoginMeta(
     NextResponse.json({
       ok: true,
       route: "/api/auth/login",
       runtime: "nodejs",
       ts: new Date().toISOString(),
-      hint: "If POST still returns generic 500, check Response body for code LOGIN_LOAD_FAILED after deploy.",
+      hint: "Check POST response headers: x-login-stage (where it stopped), x-adminsite-status (upstream HTTP status).",
     }),
-    reqId
+    reqId,
+    { stage: "get" }
   );
 }
 
 const DEBUG_AUTH = process.env.REGISTRATION_DEBUG_AUTH === "1";
+const SKIP_COOKIES = process.env.REGISTRATION_SKIP_AUTH_COOKIES === "1";
 
 function emailHint(email: string): string {
   const at = email.indexOf("@");
@@ -45,7 +57,7 @@ export async function POST(request: Request) {
   const reqId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
   try {
-    console.error("[auth/login] POST enter", { reqId });
+    console.error("[auth/login] POST enter", { reqId, skipCookies: SKIP_COOKIES });
 
     type AuthBackend = typeof import("@/lib/auth-backend");
     type SessionCookies = typeof import("@/lib/auth-session-cookies");
@@ -61,7 +73,7 @@ export async function POST(request: Request) {
       const msg = loadErr instanceof Error ? loadErr.message : String(loadErr);
       const stack = loadErr instanceof Error ? loadErr.stack : undefined;
       console.error("[auth/login] dynamic import failed", { reqId, msg, stack });
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json(
           {
             error:
@@ -71,7 +83,8 @@ export async function POST(request: Request) {
           },
           { status: 500 }
         ),
-        reqId
+        reqId,
+        { stage: "load_failed" }
       );
     }
 
@@ -80,16 +93,21 @@ export async function POST(request: Request) {
       authBackendBaseHost,
       getAuthBackendConfig,
     } = authBackend;
-    const { coerceLoginTokens, jsonWithAuthCookiesHeaders } = sessionCookies;
+    const {
+      coerceLoginTokens,
+      jsonWithAuthCookiesHeaders,
+      estimateAuthSetCookieBytes,
+    } = sessionCookies;
 
     let body: { email?: string; password?: string; keepMeSignedIn?: boolean };
     try {
       body = await request.json();
     } catch (parseErr) {
       console.error("[auth/login] invalid JSON", { reqId, parseErr });
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json({ error: "Invalid JSON body", code: "INVALID_JSON" }, { status: 400 }),
-        reqId
+        reqId,
+        { stage: "invalid_json" }
       );
     }
 
@@ -107,12 +125,13 @@ export async function POST(request: Request) {
     });
 
     if (!email || !password) {
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json(
           { error: "Email and password are required", code: "VALIDATION" },
           { status: 400 }
         ),
-        reqId
+        reqId,
+        { stage: "validation" }
       );
     }
 
@@ -125,7 +144,7 @@ export async function POST(request: Request) {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Server configuration error";
       console.error("[auth/login] config_error", { reqId, message: msg });
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json(
           {
             error:
@@ -139,7 +158,8 @@ export async function POST(request: Request) {
           },
           { status: 503 }
         ),
-        reqId
+        reqId,
+        { stage: "config_error" }
       );
     }
 
@@ -160,7 +180,7 @@ export async function POST(request: Request) {
         message: msg,
         stack: stack?.split("\n").slice(0, 6).join("\n"),
       });
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json(
           {
             error: "Could not reach authentication service",
@@ -169,7 +189,8 @@ export async function POST(request: Request) {
           },
           { status: 502 }
         ),
-        reqId
+        reqId,
+        { stage: "fetch_error" }
       );
     }
 
@@ -188,17 +209,20 @@ export async function POST(request: Request) {
 
     if (!result.ok) {
       const err = result.data as LoginErr;
+      const upstreamCode =
+        err.code ??
+        (result.status === 500 ? "ADMINSITE_HTTP_500" : "ADMINSITE_UPSTREAM_ERROR");
       console.warn("[auth/login] AdminSite error body", {
         reqId,
         status: result.status,
         code: err.code,
         error: err.error,
       });
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json(
           {
             error: err.error || "Sign in failed",
-            code: err.code,
+            code: upstreamCode,
             ...(err.code === "EMAIL_NOT_VERIFIED" && err.account_id
               ? { account_id: err.account_id }
               : {}),
@@ -208,7 +232,8 @@ export async function POST(request: Request) {
               result.status >= 400 && result.status < 600 ? result.status : 502,
           }
         ),
-        reqId
+        reqId,
+        { stage: "upstream_error", adminsiteStatus: result.status }
       );
     }
 
@@ -219,7 +244,7 @@ export async function POST(request: Request) {
         reason: coerced.reason,
         keys: coerced.keys,
       });
-      return withReqId(
+      return withLoginMeta(
         NextResponse.json(
           {
             error:
@@ -230,22 +255,42 @@ export async function POST(request: Request) {
           },
           { status: 502 }
         ),
-        reqId
+        reqId,
+        { stage: "coerce_fail" }
+      );
+    }
+
+    if (SKIP_COOKIES) {
+      console.warn("[auth/login] REGISTRATION_SKIP_AUTH_COOKIES=1 — not setting cookies", {
+        reqId,
+      });
+      return withLoginMeta(
+        NextResponse.json({
+          ok: true as const,
+          account_id: coerced.tokens.account_id,
+          token_type: coerced.tokens.token_type ?? "Bearer",
+          cookies_skipped: true as const,
+          warning:
+            "Debug only: unset REGISTRATION_SKIP_AUTH_COOKIES after testing. Tokens were not stored.",
+        }),
+        reqId,
+        { stage: "cookies_skipped" }
       );
     }
 
     try {
+      const approxBytes = estimateAuthSetCookieBytes(coerced.tokens, keepMeSignedIn);
       console.info("[auth/login] setting cookies", {
         reqId,
         accountIdLen: coerced.tokens.account_id.length,
         accessLen: coerced.tokens.access_token.length,
         refreshLen: coerced.tokens.refresh_token.length,
+        approxSetCookieBytes: approxBytes,
         keepMeSignedIn,
       });
+
       const out = jsonWithAuthCookiesHeaders(coerced.tokens, keepMeSignedIn);
-      out.headers.set("x-login-req-id", reqId);
-      console.info("[auth/login] success", { reqId });
-      return out;
+      return withLoginMeta(out, reqId, { stage: "ok" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[auth/login] session cookies", { reqId, message: msg });
@@ -253,7 +298,7 @@ export async function POST(request: Request) {
         msg === "LOGIN_RESPONSE_MISSING_TOKENS" ||
         msg === "LOGIN_RESPONSE_MISSING_ACCOUNT_ID"
       ) {
-        return withReqId(
+        return withLoginMeta(
           NextResponse.json(
             {
               error:
@@ -262,11 +307,12 @@ export async function POST(request: Request) {
             },
             { status: 502 }
           ),
-          reqId
+          reqId,
+          { stage: "coerce_throw" }
         );
       }
       if (msg.startsWith("LOGIN_TOKEN_COOKIE_TOO_LARGE")) {
-        return withReqId(
+        return withLoginMeta(
           NextResponse.json(
             {
               error:
@@ -276,10 +322,26 @@ export async function POST(request: Request) {
             },
             { status: 502 }
           ),
-          reqId
+          reqId,
+          { stage: "token_too_large" }
         );
       }
-      return withReqId(
+      if (msg.startsWith("LOGIN_COOKIE_HEADERS_TOO_LARGE")) {
+        return withLoginMeta(
+          NextResponse.json(
+            {
+              error:
+                "Combined Set-Cookie headers exceed the proxy limit (~8KB on many hosts). Shorten JWTs in HAMS or use server-side sessions instead of full tokens in cookies.",
+              code: "LOGIN_COOKIE_HEADERS_TOO_LARGE",
+              hint: msg.slice(0, 240),
+            },
+            { status: 502 }
+          ),
+          reqId,
+          { stage: "headers_too_large" }
+        );
+      }
+      return withLoginMeta(
         NextResponse.json(
           {
             error: "Could not set session cookies. Try again.",
@@ -288,7 +350,8 @@ export async function POST(request: Request) {
           },
           { status: 500 }
         ),
-        reqId
+        reqId,
+        { stage: "session_cookie_error" }
       );
     }
   } catch (fatal: unknown) {
@@ -300,7 +363,7 @@ export async function POST(request: Request) {
       stack: stack?.split("\n").slice(0, 12).join("\n"),
       fatal,
     });
-    return withReqId(
+    return withLoginMeta(
       NextResponse.json(
         {
           error: "Sign-in failed unexpectedly. Check Vercel function logs for [auth/login].",
@@ -309,7 +372,8 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       ),
-      reqId
+      reqId,
+      { stage: "fatal" }
     );
   }
 }
