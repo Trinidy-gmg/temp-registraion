@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ACCESS_COOKIE,
@@ -93,10 +94,19 @@ function safeCookieMaxAge(seconds: number, fallback: number): number {
   return n;
 }
 
-export function jsonWithAuthCookies(
+type AuthCookieFields = {
+  accessTok: string;
+  refreshTok: string;
+  accountId: string;
+  accessMaxAge: number;
+  refreshMaxAge: number;
+  tokenType: string;
+};
+
+function assertAuthCookieFields(
   data: LoginTokens,
   keepMeSignedIn: boolean
-): NextResponse {
+): AuthCookieFields {
   const accessTok = data.access_token.trim();
   const refreshTok = data.refresh_token.trim();
   const accountId = data.account_id.trim();
@@ -120,32 +130,87 @@ export function jsonWithAuthCookies(
     ? 60 * 60 * 24 * 30
     : 60 * 60 * 24 * 7;
 
+  return {
+    accessTok,
+    refreshTok,
+    accountId,
+    accessMaxAge,
+    refreshMaxAge,
+    tokenType: data.token_type ?? "Bearer",
+  };
+}
+
+/**
+ * Prefer in Route Handlers on Vercel: `cookies()` from next/headers avoids opaque 500s
+ * some deployments hit when using `NextResponse.cookies.set` twice on the same response.
+ */
+export async function jsonWithAuthCookiesHeaders(
+  data: LoginTokens,
+  keepMeSignedIn: boolean
+): Promise<NextResponse> {
+  const f = assertAuthCookieFields(data, keepMeSignedIn);
   const secure = process.env.NODE_ENV === "production";
-  const res = NextResponse.json({
-    ok: true as const,
-    account_id: accountId,
-    token_type: data.token_type ?? "Bearer",
-  });
+  const store = await cookies();
 
   try {
-    res.cookies.set(ACCESS_COOKIE, accessTok, {
+    store.set(ACCESS_COOKIE, f.accessTok, {
       httpOnly: true,
       secure,
       sameSite: "lax",
       path: "/",
-      maxAge: accessMaxAge,
+      maxAge: f.accessMaxAge,
+    });
+    store.set(REFRESH_COOKIE, f.refreshTok, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: f.refreshMaxAge,
+    });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    throw new Error(`COOKIE_STORE_SET_FAILED:${m}`);
+  }
+
+  return NextResponse.json({
+    ok: true as const,
+    account_id: f.accountId,
+    token_type: f.tokenType,
+  });
+}
+
+/** @deprecated Prefer jsonWithAuthCookiesHeaders in Route Handlers (Vercel-safe). */
+export function jsonWithAuthCookies(
+  data: LoginTokens,
+  keepMeSignedIn: boolean
+): NextResponse {
+  const f = assertAuthCookieFields(data, keepMeSignedIn);
+  const secure = process.env.NODE_ENV === "production";
+  const res = NextResponse.json({
+    ok: true as const,
+    account_id: f.accountId,
+    token_type: f.tokenType,
+  });
+
+  try {
+    res.cookies.set(ACCESS_COOKIE, f.accessTok, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: f.accessMaxAge,
     });
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
     throw new Error(`COOKIE_SET_ACCESS_FAILED:${m}`);
   }
   try {
-    res.cookies.set(REFRESH_COOKIE, refreshTok, {
+    res.cookies.set(REFRESH_COOKIE, f.refreshTok, {
       httpOnly: true,
       secure,
       sameSite: "lax",
       path: "/",
-      maxAge: refreshMaxAge,
+      maxAge: f.refreshMaxAge,
     });
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
