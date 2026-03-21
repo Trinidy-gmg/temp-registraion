@@ -135,7 +135,15 @@ All use `path: /`, `sameSite: lax`, `secure` in production.
 
 ## Server logs (Vercel)
 
-**Deployment check:** open `GET /api/auth/login` in the browser. You should see JSON `{ ok: true, route: "/api/auth/login", runtime: "nodejs", ... }`. If that 500s, the problem is outside the POST handler.
+**Is the bug client or server?** A normal sign-in request is `POST /api/auth/login` with `Content-Type: application/json`, body `{ email, password, keepMeSignedIn }`, and `credentials: "include"` (or `same-origin`). **If you get HTTP 500, the failure is on the server** (or Vercel routing to the wrong deployment). You **do not** receive JWTs in the JSON body on success — they arrive as **`Set-Cookie`** (`ho_access_token`, `ho_refresh_token`). Until status is **200** and those cookies appear, you are **not** logged in.
+
+**Isolation routes (no app auth libs on `ping`):**
+
+1. `GET https://<your-host>/api/auth/ping` → should return `{ ok: true, node: "v…" }`. If this 500s, the Vercel project or Node runtime is misconfigured.
+2. `GET https://<your-host>/api/auth/login` → proves the login segment loads.
+3. `POST /api/auth/ping` with the same JSON as login → proves body parsing works (returns `bodyBytes`).
+
+**After deploy:** every `POST /api/auth/login` response includes header **`x-login-req-id`** (correlate with Vercel logs). If dynamic import of auth modules fails, body is `{ code: "LOGIN_LOAD_FAILED", hint: "…" }` instead of a generic Next error.
 
 **Import chain:** `app/api/auth/login` must not load `email-verify-session.ts` (it pulls Node `crypto`). Cookie names live in **`lib/ho-cookie-names.ts`**; `auth-session-cookies.ts` imports from there so login stays lightweight.
 
