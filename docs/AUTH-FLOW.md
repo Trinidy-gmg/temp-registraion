@@ -139,9 +139,13 @@ All use `path: /`, `sameSite: lax`, `secure` in production.
 
 **Isolation routes (no app auth libs on `ping`):**
 
-1. `GET https://<your-host>/api/auth/ping` → should return `{ ok: true, node: "v…" }`. If this 500s, the Vercel project or Node runtime is misconfigured.
+1. `GET https://<your-host>/api/ping` (short) or `/api/auth/ping` → should return `{ ok: true, node: "v…", gitSha: "…" }`.
+   - **404 Not Found** means this deployment was **not built from a commit that contains these routes**, or Vercel **Root Directory** is wrong (must be the folder that contains your Next `app/` directory — for this repo, usually **`.`** at the repo root, not a parent monorepo folder).
+   - Merge `feature/email-verification-flow` into the branch Vercel **Production** uses, or point the Preview deployment at that branch, then redeploy.
 2. `GET https://<your-host>/api/auth/login` → proves the login segment loads.
-3. `POST /api/auth/ping` with the same JSON as login → proves body parsing works (returns `bodyBytes`).
+3. `POST /api/ping` or `POST /api/auth/ping` with the same JSON as login → proves body parsing works (returns `bodyBytes`).
+
+Response includes **`gitSha`** (from `VERCEL_GIT_COMMIT_SHA`) so you can confirm the live build matches GitHub.
 
 **After deploy:** every `POST /api/auth/login` response includes header **`x-login-req-id`** (correlate with Vercel logs). If dynamic import of auth modules fails, body is `{ code: "LOGIN_LOAD_FAILED", hint: "…" }` instead of a generic Next error.
 
