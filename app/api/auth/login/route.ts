@@ -242,10 +242,7 @@ export async function POST(request: Request) {
         refreshLen: coerced.tokens.refresh_token.length,
         keepMeSignedIn,
       });
-      const out = await jsonWithAuthCookiesHeaders(
-        coerced.tokens,
-        keepMeSignedIn
-      );
+      const out = jsonWithAuthCookiesHeaders(coerced.tokens, keepMeSignedIn);
       out.headers.set("x-login-req-id", reqId);
       console.info("[auth/login] success", { reqId });
       return out;

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ACCESS_COOKIE,
@@ -141,46 +140,44 @@ function assertAuthCookieFields(
 }
 
 /**
- * Prefer in Route Handlers on Vercel: `cookies()` from next/headers avoids opaque 500s
- * some deployments hit when using `NextResponse.cookies.set` twice on the same response.
+ * Raw Set-Cookie headers on the Response. Vercel + Next 16 has repeatedly failed on
+ * `NextResponse.cookies.set` (two cookies) and on `cookies().set` from `next/headers` in
+ * Route Handlers for this app — append is the reliable path.
  */
-export async function jsonWithAuthCookiesHeaders(
-  data: LoginTokens,
-  keepMeSignedIn: boolean
-): Promise<NextResponse> {
-  const f = assertAuthCookieFields(data, keepMeSignedIn);
-  const secure = process.env.NODE_ENV === "production";
-  const store = await cookies();
-
-  try {
-    store.set(ACCESS_COOKIE, f.accessTok, {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: f.accessMaxAge,
-    });
-    store.set(REFRESH_COOKIE, f.refreshTok, {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: f.refreshMaxAge,
-    });
-  } catch (e) {
-    const m = e instanceof Error ? e.message : String(e);
-    throw new Error(`COOKIE_STORE_SET_FAILED:${m}`);
-  }
-
-  return NextResponse.json({
-    ok: true as const,
-    account_id: f.accountId,
-    token_type: f.tokenType,
-  });
+function buildAuthSetCookieHeader(
+  name: string,
+  value: string,
+  maxAgeSec: number,
+  secure: boolean
+): string {
+  const parts = [
+    `${name}=${value}`,
+    "Path=/",
+    `Max-Age=${Math.floor(maxAgeSec)}`,
+    "HttpOnly",
+    ...(secure ? (["Secure"] as const) : []),
+    "SameSite=Lax",
+  ];
+  return parts.join("; ");
 }
 
-/** @deprecated Prefer jsonWithAuthCookiesHeaders in Route Handlers (Vercel-safe). */
-export function jsonWithAuthCookies(
+function appendAuthSetCookieHeaders(
+  res: NextResponse,
+  f: AuthCookieFields,
+  secure: boolean
+): void {
+  res.headers.append(
+    "Set-Cookie",
+    buildAuthSetCookieHeader(ACCESS_COOKIE, f.accessTok, f.accessMaxAge, secure)
+  );
+  res.headers.append(
+    "Set-Cookie",
+    buildAuthSetCookieHeader(REFRESH_COOKIE, f.refreshTok, f.refreshMaxAge, secure)
+  );
+}
+
+/** Sets auth cookies via `Set-Cookie` headers (Vercel-safe). */
+export function jsonWithAuthCookiesHeaders(
   data: LoginTokens,
   keepMeSignedIn: boolean
 ): NextResponse {
@@ -191,33 +188,17 @@ export function jsonWithAuthCookies(
     account_id: f.accountId,
     token_type: f.tokenType,
   });
-
-  try {
-    res.cookies.set(ACCESS_COOKIE, f.accessTok, {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: f.accessMaxAge,
-    });
-  } catch (e) {
-    const m = e instanceof Error ? e.message : String(e);
-    throw new Error(`COOKIE_SET_ACCESS_FAILED:${m}`);
-  }
-  try {
-    res.cookies.set(REFRESH_COOKIE, f.refreshTok, {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: f.refreshMaxAge,
-    });
-  } catch (e) {
-    const m = e instanceof Error ? e.message : String(e);
-    throw new Error(`COOKIE_SET_REFRESH_FAILED:${m}`);
-  }
-
+  appendAuthSetCookieHeaders(res, f, secure);
+  res.headers.set("x-auth-cookies", "set-cookie-append");
   return res;
+}
+
+/** @deprecated Same as jsonWithAuthCookiesHeaders (header append). */
+export function jsonWithAuthCookies(
+  data: LoginTokens,
+  keepMeSignedIn: boolean
+): NextResponse {
+  return jsonWithAuthCookiesHeaders(data, keepMeSignedIn);
 }
 
 /**

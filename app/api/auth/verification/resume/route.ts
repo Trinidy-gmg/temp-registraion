@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       );
     }
     try {
-      return await jsonWithAuthCookiesHeaders(coerced.tokens, keepMeSignedIn);
+      return jsonWithAuthCookiesHeaders(coerced.tokens, keepMeSignedIn);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verification/resume] session cookies", msg);
