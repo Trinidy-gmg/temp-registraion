@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cinzel, Outfit } from "next/font/google";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const cinzel = Cinzel({
@@ -15,11 +16,14 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Hollowed Oath — Sign in",
+  title: {
+    default: "Hollowed Oath — registration demo",
+    template: "%s | Hollowed Oath demo",
+  },
   description:
-    "Sign in or create an account for Hollowed Oath — a heroic fantasy MMORPG.",
+    "Temp registration demo: log in to this site, then view your account on /signedin.",
   openGraph: {
-    title: "Hollowed Oath — Welcome",
+    title: "Hollowed Oath — registration demo",
     description:
       "Sign in or create an account for Hollowed Oath.",
     images: [
@@ -40,7 +44,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark ${cinzel.variable} ${outfit.variable} h-full`}>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

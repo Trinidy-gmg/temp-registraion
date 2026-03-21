@@ -14,7 +14,7 @@ type MarkErr = { error?: string; code?: string };
 
 /**
  * Verifies the 8-digit code and marks email verified on HAMS.
- * The browser should then POST `/api/auth/login` with email + password to receive session cookies.
+ * The browser should then call NextAuth `signIn("credentials", { email, password })` to open a session.
  */
 export async function POST(request: Request) {
   try {
@@ -96,8 +96,8 @@ export async function POST(request: Request) {
       ok: true as const,
       verified: true as const,
       account_id: accountId,
-      /** Hint for clients: call POST /api/auth/login next with email + password. */
-      next: "login" as const,
+      /** Hint for clients: NextAuth credentials sign-in with email + password. */
+      next: "signIn" as const,
     });
     clearEmailVerifyCookie(res);
     return res;

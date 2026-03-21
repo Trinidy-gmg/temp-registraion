@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { fetchLoginAfterVerification } from "@/lib/client-login-after-verify";
+import { signInWithCredentials } from "@/lib/client-sign-in-credentials";
 
 const KMSI_STORAGE_KEY = "ho-keep-me-signed-in";
 
@@ -59,42 +60,21 @@ export function SignInForm() {
     resetVerificationUi();
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        cache: "no-store",
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-          keepMeSignedIn,
-        }),
+      const login = await signInWithCredentials({
+        email: email.trim(),
+        password,
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        code?: string;
-        account_id?: string;
-        ok?: boolean;
-        hint?: string;
-        keys?: string[];
-      };
-      if (!res.ok) {
-        if (data.code === "EMAIL_NOT_VERIFIED") {
+      if (!login.ok) {
+        if (login.code === "EMAIL_NOT_VERIFIED") {
           setVerifyPhase("awaiting_send");
           setError(
-            data.error ||
-              "This account exists but email is not verified yet. Send yourself a new code to finish."
+            "This account exists but email is not verified yet. Send yourself a new code to finish."
           );
           return;
         }
-        const detail = [data.code, data.hint, data.keys?.length ? `keys: ${data.keys.join(",")}` : ""]
-          .filter(Boolean)
-          .join(" — ");
-        throw new Error(
-          [data.error || `Sign in failed (${res.status})`, detail].filter(Boolean).join(" ")
-        );
+        throw new Error(login.error || "Sign in failed");
       }
-      router.replace("/logged-in");
+      router.replace("/signedin");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
@@ -128,8 +108,18 @@ export function SignInForm() {
         return;
       }
       if (data.ok && data.account_id) {
+        const login = await signInWithCredentials({
+          email: email.trim(),
+          password,
+        });
+        if (!login.ok) {
+          throw new Error(
+            login.error ||
+              "Could not start your session after verification. Try signing in again."
+          );
+        }
         resetVerificationUi();
-        router.replace("/logged-in");
+        router.replace("/signedin");
         router.refresh();
       }
     } catch (err) {
@@ -173,7 +163,7 @@ export function SignInForm() {
         );
       }
       resetVerificationUi();
-      router.replace("/logged-in");
+      router.replace("/signedin");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
@@ -365,6 +355,10 @@ export function SignInForm() {
           ) : null}
 
           <p className="mt-6 text-center font-[family-name:var(--font-outfit)] text-sm text-white/55">
+            <Link href="/" className="font-medium text-white/70 underline-offset-2 hover:underline">
+              Home
+            </Link>
+            {" · "}
             New to Hollowed Oath?{" "}
             <Link
               href="/signup"

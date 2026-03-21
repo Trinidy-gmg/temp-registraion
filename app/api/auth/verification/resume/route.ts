@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { authBackendPost, getAuthBackendConfig } from "@/lib/auth-backend";
-import {
-  coerceLoginTokens,
-  jsonWithAuthCookiesHeaders,
-} from "@/lib/auth-session-cookies";
+import { coerceLoginTokens } from "@/lib/auth-session-cookies";
 import {
   EMAIL_VERIFY_COOKIE,
   issueNewVerificationSession,
@@ -31,8 +28,6 @@ export async function POST(request: Request) {
 
   const email = typeof body.email === "string" ? body.email.trim() : "";
   const password = typeof body.password === "string" ? body.password : "";
-  const keepMeSignedIn = Boolean(body.keepMeSignedIn);
-
   if (!email || !password) {
     return NextResponse.json(
       { error: "Email and password are required" },
@@ -78,20 +73,11 @@ export async function POST(request: Request) {
         { status: 502 }
       );
     }
-    try {
-      return jsonWithAuthCookiesHeaders(coerced.tokens, keepMeSignedIn);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.error("[verification/resume] session cookies", msg);
-      return NextResponse.json(
-        {
-          error: "Could not set session cookies.",
-          code: "SESSION_COOKIE_ERROR",
-          hint: msg.slice(0, 160),
-        },
-        { status: 500 }
-      );
-    }
+    /** Client must call NextAuth `signIn("credentials", …)` to open a session (no HAMS tokens in cookies). */
+    return NextResponse.json({
+      ok: true as const,
+      account_id: coerced.tokens.account_id,
+    });
   }
 
   const err = result.data as LoginErr;

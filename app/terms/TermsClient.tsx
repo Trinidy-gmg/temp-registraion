@@ -29,7 +29,7 @@ export function TermsClient() {
           href="/"
           className="font-[family-name:var(--font-outfit)] text-sm text-[#F0BA19]/90 underline-offset-2 hover:underline"
         >
-          ← Back to sign in
+          ← Home
         </Link>
 
         <h1 className="mt-8 font-[family-name:var(--font-cinzel)] text-3xl font-bold tracking-tight text-[#F0BA19] drop-shadow-[0_0_12px_rgba(240,186,25,0.25)] md:text-4xl">

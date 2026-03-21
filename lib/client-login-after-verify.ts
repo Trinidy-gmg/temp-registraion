@@ -1,16 +1,10 @@
 /**
- * Browser-only: after email is verified, obtain session cookies via `/api/auth/login`.
+ * Browser-only: after email is verified, establish a NextAuth session via Credentials.
  * Retries once if HAMS still reports EMAIL_NOT_VERIFIED (eventual consistency).
  */
 
-export type LoginJson = {
-  ok?: boolean;
-  account_id?: string;
-  error?: string;
-  code?: string;
-  hint?: string;
-  keys?: string[];
-};
+import { getSession } from "next-auth/react";
+import { signInWithCredentials } from "@/lib/client-sign-in-credentials";
 
 export async function fetchLoginAfterVerification(opts: {
   email: string;
@@ -20,47 +14,38 @@ export async function fetchLoginAfterVerification(opts: {
   | { ok: true; account_id: string }
   | { ok: false; message: string; code?: string; hint?: string }
 > {
-  const { email, password, keepMeSignedIn } = opts;
+  const { email, password, keepMeSignedIn: _keepMeSignedIn } = opts;
+  void _keepMeSignedIn; /* reserved for future NextAuth session maxAge */
 
-  const doLogin = () =>
-    fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      cache: "no-store",
-      body: JSON.stringify({ email: email.trim(), password, keepMeSignedIn }),
-    });
+  const tryOnce = () =>
+    signInWithCredentials({ email: email.trim(), password });
 
-  let res = await doLogin();
-  let data = (await res.json().catch(() => ({}))) as LoginJson;
+  let login = await tryOnce();
 
-  if (!res.ok && res.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+  if (!login.ok && login.code === "EMAIL_NOT_VERIFIED") {
     await new Promise((r) => setTimeout(r, 400));
-    res = await doLogin();
-    data = (await res.json().catch(() => ({}))) as LoginJson;
+    login = await tryOnce();
   }
 
-  if (!res.ok) {
-    const parts = [
-      data.error || `Sign in failed (${res.status})`,
-      data.code ? `[${data.code}]` : "",
-      data.hint ? data.hint.slice(0, 240) : "",
-    ].filter(Boolean);
+  if (!login.ok) {
+    const parts = [login.error, login.code ? `[${login.code}]` : ""].filter(
+      Boolean
+    );
     return {
       ok: false,
-      message: parts.join(" "),
-      code: data.code,
-      hint: data.hint,
+      message: parts.join(" ") || "Sign in failed",
+      code: login.code,
     };
   }
 
+  const session = await getSession();
   const account_id =
-    typeof data.account_id === "string" ? data.account_id.trim() : "";
+    typeof session?.user?.id === "string" ? session.user.id.trim() : "";
   if (!account_id) {
     return {
       ok: false,
       message:
-        "Sign-in response missing account id. Check AdminSite → HAMS login JSON includes account_id.",
+        "Signed in but session has no account id. Try signing in again from the home page.",
     };
   }
 

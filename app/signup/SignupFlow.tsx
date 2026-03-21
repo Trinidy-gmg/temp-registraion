@@ -189,7 +189,7 @@ export function SignupFlow() {
       return;
     }
     if (!signupPassword) {
-      setError("Your password is required to finish verification. Go back to account details or sign in from the home page.");
+      setError("Your password is required to finish verification. Go back to account details or log in from /login.");
       return;
     }
     setLoading(true);
@@ -221,7 +221,7 @@ export function SignupFlow() {
       setSignupPassword("");
       setSignupConfirm("");
       setVerifyCode("");
-      router.replace("/logged-in");
+      router.replace("/signedin");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
@@ -294,10 +294,10 @@ export function SignupFlow() {
                 Continue
               </button>
               <Link
-                href="/"
+                href="/login"
                 className="inline-flex items-center rounded-md border border-white/20 px-6 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/75 hover:bg-white/5"
               >
-                Back to sign in
+                Back to log in
               </Link>
             </div>
           </div>
@@ -535,8 +535,8 @@ export function SignupFlow() {
               </button>
             </div>
             <p className="mt-4 font-[family-name:var(--font-outfit)] text-xs text-white/40">
-              Left this page? Sign in from the home page with your email and password —
-              you’ll be able to send a new code if you still need to verify.
+              Left this page? Log in from <code className="text-white/50">/login</code> with your
+              email and password — you’ll be able to send a new code if you still need to verify.
             </p>
           </form>
         )}
