@@ -68,12 +68,11 @@ export function SignInForm() {
       if (!login.ok) {
         if (login.code === "EMAIL_NOT_VERIFIED") {
           setVerifyPhase("awaiting_send");
-          setError(
-            "This account exists but email is not verified yet. Send yourself a new code to finish."
-          );
+          setError(messageForLoginCode("EMAIL_NOT_VERIFIED"));
           return;
         }
-        throw new Error(login.error || "Sign in failed");
+        setError(messageForLoginCode(login.code, login.error));
+        return;
       }
       router.replace("/signedin");
       router.refresh();

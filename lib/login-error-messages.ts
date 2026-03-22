@@ -27,7 +27,11 @@ export function messageForLoginCode(
       return "Sign-in couldn’t be completed right now. Please try again in a few minutes.";
     case "MISSING_CREDENTIALS":
       return "Enter your email and password.";
-    default:
-      return fallback?.trim() || "Sign in failed. Please try again.";
+    default: {
+      const f = fallback?.trim();
+      /** NextAuth surfaces the exception type name, not a user-facing message. */
+      if (f && !/^credentialssignin$/i.test(f)) return f;
+      return "Sign in failed. Please try again.";
+    }
   }
 }
