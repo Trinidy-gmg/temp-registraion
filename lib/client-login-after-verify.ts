@@ -5,6 +5,7 @@
 
 import { getSession } from "next-auth/react";
 import { signInWithCredentials } from "@/lib/client-sign-in-credentials";
+import { messageForLoginCode } from "@/lib/login-error-messages";
 
 export async function fetchLoginAfterVerification(opts: {
   email: string;
@@ -28,12 +29,9 @@ export async function fetchLoginAfterVerification(opts: {
   }
 
   if (!login.ok) {
-    const parts = [login.error, login.code ? `[${login.code}]` : ""].filter(
-      Boolean
-    );
     return {
       ok: false,
-      message: parts.join(" ") || "Sign in failed",
+      message: messageForLoginCode(login.code, login.error),
       code: login.code,
     };
   }

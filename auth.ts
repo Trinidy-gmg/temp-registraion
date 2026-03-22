@@ -12,10 +12,14 @@ if (!process.env.AUTH_URL && process.env.NEXTAUTH_URL) {
   process.env.AUTH_URL = process.env.NEXTAUTH_URL;
 }
 
-function emailNotVerified(): never {
+function throwCredentialsCode(code: string): never {
   const e = new CredentialsSignin();
-  e.code = "EMAIL_NOT_VERIFIED";
+  e.code = code;
   throw e;
+}
+
+function emailNotVerified(): never {
+  throwCredentialsCode("EMAIL_NOT_VERIFIED");
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -34,14 +38,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password =
           typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) {
-          return null;
+          throwCredentialsCode("MISSING_CREDENTIALS");
         }
 
         try {
           getAuthBackendConfig();
         } catch {
           console.error("[auth] account API base URL not configured");
-          return null;
+          throwCredentialsCode("ACCOUNT_SERVICE_ERROR");
         }
 
         let result: Awaited<ReturnType<typeof authBackendPost<unknown>>>;
@@ -52,21 +56,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
         } catch (e) {
           console.error("[auth] account service login request failed", e);
-          return null;
+          throwCredentialsCode("ACCOUNT_SERVICE_ERROR");
         }
 
         if (!result.ok) {
           const data = result.data as { code?: string };
-          if (result.status === 403 && data?.code === "EMAIL_NOT_VERIFIED") {
+          if (data?.code === "EMAIL_NOT_VERIFIED") {
             emailNotVerified();
           }
-          return null;
+          if (
+            data?.code === "LOGIN_INCOMPLETE" ||
+            data?.code === "ADMIN_SITE_NON_JSON"
+          ) {
+            throwCredentialsCode("ACCOUNT_SERVICE_ERROR");
+          }
+          if (typeof data?.code === "string" && data.code.length > 0) {
+            throwCredentialsCode(data.code);
+          }
+          throwCredentialsCode("SIGN_IN_FAILED");
         }
 
         const coerced = coerceLoginTokens(result.data);
         if (!coerced.ok) {
           console.error("[auth] login JSON shape", coerced);
-          return null;
+          throwCredentialsCode("ACCOUNT_SERVICE_ERROR");
         }
 
         // Store only id + email in the JWT so the session cookie stays small (HAMS tokens are huge).

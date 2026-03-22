@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { fetchLoginAfterVerification } from "@/lib/client-login-after-verify";
 import { signInWithCredentials } from "@/lib/client-sign-in-credentials";
+import { messageForLoginCode } from "@/lib/login-error-messages";
 
 const KMSI_STORAGE_KEY = "ho-keep-me-signed-in";
 
@@ -113,10 +114,14 @@ export function SignInForm() {
           password,
         });
         if (!login.ok) {
-          throw new Error(
-            login.error ||
-              "Could not start your session after verification. Try signing in again."
+          setError(
+            messageForLoginCode(
+              login.code,
+              login.error ||
+                "Could not start your session after verification. Try signing in again."
+            )
           );
+          return;
         }
         resetVerificationUi();
         router.replace("/signedin");
