@@ -25,12 +25,14 @@ function parseCodeFromAuthUrl(url: string | null | undefined): string | undefine
 export async function signInWithCredentials(opts: {
   email: string;
   password: string;
+  keepMeSignedIn?: boolean;
 }): Promise<SignInCredentialsResult> {
   let res: Awaited<ReturnType<typeof signIn>> | undefined;
   try {
     res = await signIn("credentials", {
       email: opts.email.trim(),
       password: opts.password,
+      keepMeSignedIn: opts.keepMeSignedIn ? "true" : "false",
       redirect: false,
     });
   } catch {
