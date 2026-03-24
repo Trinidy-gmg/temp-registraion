@@ -23,7 +23,12 @@ type LinksResponse = {
   code?: string;
 };
 
-export function DiscordLinkSection() {
+export function DiscordLinkSection({
+  variant = "default",
+}: {
+  /** `dashboard` = embedded in account page (no outer duplicate chrome). */
+  variant?: "default" | "dashboard";
+}) {
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +118,7 @@ export function DiscordLinkSection() {
             : null;
         if (expected && decoded !== expected) {
           setError(
-            `Discord OAuth redirect URI mismatch. HAMS is sending "${decoded}" but this registration site is "${expected}". Set HAMS env DISCORD_REDIRECT_URI (and the same URL in the Discord Developer Portal → OAuth2 → Redirects) to exactly: ${expected}`
+            `Discord OAuth redirect URI mismatch. HAMS sent "${decoded}" but this site expects "${expected}". Set HAMS DISCORD_REDIRECT_URI and Discord OAuth2 redirects to: ${expected}`
           );
           return;
         }
@@ -127,9 +132,17 @@ export function DiscordLinkSection() {
     }
   }
 
+  const showRedirectHint = process.env.NODE_ENV === "development";
+
   if (!configured && !loading) {
     return (
-      <div className="mt-6 rounded-md border border-white/10 bg-black/25 px-4 py-3 font-[family-name:var(--font-outfit)] text-sm text-white/55">
+      <div
+        className={
+          variant === "dashboard"
+            ? "rounded-xl border border-white/10 bg-black/35 px-4 py-3 font-[family-name:var(--font-outfit)] text-sm text-white/55"
+            : "mt-6 rounded-md border border-white/10 bg-black/25 px-4 py-3 font-[family-name:var(--font-outfit)] text-sm text-white/55"
+        }
+      >
         Discord linking needs{" "}
         <code className="text-[#F0BA19]/90">ADMINSITE_AUTH_BASE_URL</code> and{" "}
         <code className="text-[#F0BA19]/90">REGISTRATION_VERIFY_SECRET</code> on
@@ -138,17 +151,28 @@ export function DiscordLinkSection() {
     );
   }
 
+  const shell =
+    variant === "dashboard"
+      ? "rounded-xl border border-[#5865F2]/40 bg-gradient-to-br from-[#5865F2]/15 to-black/20 px-5 py-5 shadow-inner shadow-black/20"
+      : "mt-6 rounded-md border border-[#5865F2]/35 bg-[#5865F2]/10 px-4 py-4";
+
   return (
-    <div className="mt-6 rounded-md border border-[#5865F2]/35 bg-[#5865F2]/10 px-4 py-4">
-      <h3 className="font-[family-name:var(--font-cinzel)] text-sm font-semibold tracking-wide text-[#F0BA19]">
-        Discord
-      </h3>
+    <div className={shell}>
+      {variant === "default" ? (
+        <h3 className="font-[family-name:var(--font-cinzel)] text-sm font-semibold tracking-wide text-[#F0BA19]">
+          Discord
+        </h3>
+      ) : (
+        <h3 className="font-[family-name:var(--font-cinzel)] text-base font-semibold tracking-wide text-[#e8e4dc]">
+          Discord
+        </h3>
+      )}
       <p className="mt-1 font-[family-name:var(--font-outfit)] text-xs leading-relaxed text-white/60">
         Link your Discord account to your Hollowed Oath profile. You will be sent to
         Discord to approve access, then returned here.
       </p>
 
-      {expectedDiscordRedirect ? (
+      {expectedDiscordRedirect && showRedirectHint ? (
         <p className="mt-2 font-[family-name:var(--font-outfit)] text-[11px] leading-snug text-white/40">
           <span className="text-white/50">Redirect URI</span> (must match{" "}
           <code className="text-[#F0BA19]/80">DISCORD_REDIRECT_URI</code> on HAMS and
