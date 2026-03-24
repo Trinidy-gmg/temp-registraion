@@ -101,6 +101,8 @@ export function AccountDashboard({
   const discordFromProfile = profile?.oauth_links?.find(
     (l) => l.provider === "discord"
   );
+  const showSupporterCard =
+    !loading && profile?.kickstarter_backer === true;
 
   return (
     <div className="w-full max-w-4xl space-y-8">
@@ -114,8 +116,8 @@ export function AccountDashboard({
           Your account
         </h1>
         <p className="mx-auto mt-3 max-w-2xl font-[family-name:var(--font-outfit)] text-sm leading-relaxed text-white/70 md:mx-0">
-          Every journey matters in Orrathis. This profile ties your email, pledges, and linked
-          services to the characters and worlds we&apos;ll connect here.
+          Every journey matters in Orrathis. This profile ties your email and linked services to
+          the characters and worlds we&apos;ll connect here.
         </p>
       </header>
 
@@ -219,36 +221,44 @@ export function AccountDashboard({
           ) : null}
         </section>
 
-        {/* Side column: pledge & activity */}
+        {/* Side column: supporter (backers only) + activity */}
         <aside className="flex flex-col gap-6">
-          <section className="rounded-2xl border border-white/15 bg-black/45 p-5 backdrop-blur-sm">
-            <h2 className="font-[family-name:var(--font-cinzel)] text-base font-semibold text-[#F0BA19]">
-              Kickstarter
-            </h2>
-            {loading ? (
-              <p className="mt-3 text-xs text-white/45">Loading…</p>
-            ) : profile?.kickstarter_backer ? (
-              <div className="mt-3">
-                <p className="font-[family-name:var(--font-outfit)] text-sm font-semibold text-emerald-100/95">
-                  Backer
-                </p>
-                {profile.kickstarter_tier != null ? (
-                  <p className="mt-1 font-[family-name:var(--font-outfit)] text-xs text-white/60">
-                    Tier {profile.kickstarter_tier}
-                  </p>
-                ) : (
-                  <p className="mt-1 font-[family-name:var(--font-outfit)] text-xs text-white/55">
-                    Thank you for supporting Hollowed Oath.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="mt-3 font-[family-name:var(--font-outfit)] text-xs leading-relaxed text-white/55">
-                No Kickstarter pledge is recorded on this profile. Pledges are applied by the team
-                after verification.
+          {showSupporterCard ? (
+            <section className="rounded-2xl border border-[#F0BA19]/30 bg-black/45 p-5 shadow-[0_0_24px_rgba(240,186,25,0.08)] backdrop-blur-sm">
+              <h2 className="font-[family-name:var(--font-cinzel)] text-base font-semibold text-[#F0BA19]">
+                Supporter
+              </h2>
+              <p className="mt-1 font-[family-name:var(--font-outfit)] text-[11px] leading-relaxed text-white/50">
+                Kickstarter backer record on this account
               </p>
-            )}
-          </section>
+              <div className="mt-4">
+                {(() => {
+                  const tier = profile?.kickstarter_tier;
+                  const hasTier =
+                    typeof tier === "number" &&
+                    Number.isFinite(tier) &&
+                    tier >= 1;
+                  if (hasTier) {
+                    return (
+                      <div>
+                        <p className="font-[family-name:var(--font-outfit)] text-2xl font-bold tabular-nums tracking-tight text-[#f4e9d8]">
+                          Tier {tier}
+                        </p>
+                        <p className="mt-1 font-[family-name:var(--font-outfit)] text-xs text-white/55">
+                          Thank you for backing Hollowed Oath.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p className="font-[family-name:var(--font-outfit)] text-sm font-semibold text-emerald-100/95">
+                      Backer
+                    </p>
+                  );
+                })()}
+              </div>
+            </section>
+          ) : null}
 
           <section className="rounded-2xl border border-white/15 bg-black/45 p-5 backdrop-blur-sm">
             <h2 className="font-[family-name:var(--font-cinzel)] text-base font-semibold text-[#F0BA19]">
