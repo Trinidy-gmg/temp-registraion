@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getHamsApiConfig, hamsFetchJson } from "@/lib/hams-forward";
+import {
+  getOAuthProxyConfig,
+  oauthProxyFetchJson,
+} from "@/lib/adminsite-oauth-proxy";
 import { readHamsAccessTokenFromCookies } from "@/lib/server-hams-auth-cookies";
 
 export const runtime = "nodejs";
@@ -17,13 +20,18 @@ export async function GET() {
 
   let accessToken: string | null;
   try {
-    getHamsApiConfig();
+    getOAuthProxyConfig();
     accessToken = await readHamsAccessTokenFromCookies();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
     console.error("[oauth/links]", msg);
     return NextResponse.json(
-      { links: [], configured: false, message: "HAMS OAuth proxy not configured" },
+      {
+        links: [],
+        configured: false,
+        message:
+          "AdminSite OAuth proxy not configured (ADMINSITE_AUTH_BASE_URL and REGISTRATION_VERIFY_SECRET).",
+      },
       { status: 200 }
     );
   }
@@ -39,7 +47,7 @@ export async function GET() {
     );
   }
 
-  const { status, data, ok } = await hamsFetchJson("/oauth/links", {
+  const { status, data, ok } = await oauthProxyFetchJson("/links", {
     accessToken,
     method: "GET",
   });

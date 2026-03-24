@@ -86,9 +86,10 @@ export function DiscordLinkSection() {
   if (!configured && !loading) {
     return (
       <div className="mt-6 rounded-md border border-white/10 bg-black/25 px-4 py-3 font-[family-name:var(--font-outfit)] text-sm text-white/55">
-        Discord linking requires{" "}
-        <code className="text-[#F0BA19]/90">HAMS_API_URL</code> and{" "}
-        <code className="text-[#F0BA19]/90">HAMS_API_KEY</code> on this app.
+        Discord linking needs{" "}
+        <code className="text-[#F0BA19]/90">ADMINSITE_AUTH_BASE_URL</code> and{" "}
+        <code className="text-[#F0BA19]/90">REGISTRATION_VERIFY_SECRET</code> on
+        this app (AdminSite proxies to internal HAMS).
       </div>
     );
   }
