@@ -28,14 +28,14 @@ export function SignedInActions() {
   }
 
   return (
-    <div className="mt-8 flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-3">
       <button
         type="button"
         disabled={loading}
         onClick={() => void handleSignOut()}
-        className="rounded-md border border-white/25 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+        className="rounded-lg border border-red-500/35 bg-red-950/20 px-5 py-2.5 font-[family-name:var(--font-outfit)] text-sm font-medium text-red-100/95 transition hover:border-red-400/50 hover:bg-red-950/35 disabled:opacity-50"
       >
-        {loading ? "Signing out…" : "Sign out"}
+        {loading ? "Signing out…" : "Sign out of portal"}
       </button>
     </div>
   );
