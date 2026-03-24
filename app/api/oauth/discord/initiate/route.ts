@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getHamsApiConfig, hamsFetchJson } from "@/lib/hams-forward";
+import {
+  getOAuthProxyConfig,
+  oauthProxyFetchJson,
+} from "@/lib/adminsite-oauth-proxy";
 import { readHamsAccessTokenFromCookies } from "@/lib/server-hams-auth-cookies";
 
 export const runtime = "nodejs";
@@ -25,7 +28,7 @@ export async function POST() {
 
   let accessToken: string | null;
   try {
-    getHamsApiConfig();
+    getOAuthProxyConfig();
     accessToken = await readHamsAccessTokenFromCookies();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
@@ -47,7 +50,7 @@ export async function POST() {
     );
   }
 
-  const { status, data, ok } = await hamsFetchJson("/oauth/discord/initiate", {
+  const { status, data, ok } = await oauthProxyFetchJson("/discord/initiate", {
     accessToken,
     method: "POST",
   });

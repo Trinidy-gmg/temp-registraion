@@ -1,4 +1,7 @@
-import { getHamsApiConfig, hamsFetchJson } from "@/lib/hams-forward";
+import {
+  getOAuthProxyConfig,
+  oauthProxyFetchJson,
+} from "@/lib/adminsite-oauth-proxy";
 import { readHamsAccessTokenFromCookies } from "@/lib/server-hams-auth-cookies";
 
 export type CompleteDiscordOAuthResult =
@@ -37,7 +40,7 @@ export async function completeDiscordOAuthFromRequestUrl(
 
   let accessToken: string | null;
   try {
-    getHamsApiConfig();
+    getOAuthProxyConfig();
     accessToken = await readHamsAccessTokenFromCookies();
   } catch {
     return { ok: false, status: 503, reason: "not_configured" };
@@ -48,8 +51,8 @@ export async function completeDiscordOAuthFromRequestUrl(
   }
 
   const qs = new URLSearchParams({ code, state });
-  const { ok, status, data } = await hamsFetchJson(
-    `/oauth/discord/callback?${qs.toString()}`,
+  const { ok, status, data } = await oauthProxyFetchJson(
+    `/discord/callback?${qs.toString()}`,
     { accessToken, method: "GET" }
   );
 
