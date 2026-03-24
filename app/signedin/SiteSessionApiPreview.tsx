@@ -6,6 +6,8 @@ type MeOk = {
   site: string;
   authenticated: true;
   user: { id: string; email: string | null };
+  profile?: unknown;
+  profile_note?: string | null;
   session: Record<string, string>;
 };
 
@@ -50,8 +52,8 @@ export function SiteSessionApiPreview() {
         {status != null ? (
           <span className="text-white/40"> — HTTP {status}</span>
         ) : null}{" "}
-        returns your <strong className="text-white/70">signed-in account</strong>{" "}
-        (id and email) for integrations and verification.
+        returns your portal session plus a <strong className="text-white/70">HAMS profile</strong>{" "}
+        when your login token is present — status, Kickstarter, locks, linked Discord, etc.
       </p>
       <pre className="mt-3 max-h-64 overflow-auto rounded border border-white/10 bg-black/50 p-3 font-mono text-[11px] leading-relaxed text-emerald-100/90">
         {text}
