@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { HeroBackdrop } from "@/app/components/HeroBackdrop";
+import { DiscordLinkSection } from "@/app/signedin/DiscordLinkSection";
 import { SignedInActions } from "@/app/signedin/SignedInActions";
 import { SiteSessionApiPreview } from "@/app/signedin/SiteSessionApiPreview";
 import type { Metadata } from "next";
@@ -13,11 +14,54 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function SignedInPage() {
+function firstParam(
+  v: string | string[] | undefined
+): string | undefined {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v) && typeof v[0] === "string") return v[0];
+  return undefined;
+}
+
+function discordErrorMessage(reason: string | undefined): string {
+  switch (reason) {
+    case "not_signed_in":
+      return "You were signed out before Discord finished. Sign in and try linking again.";
+    case "discord_denied":
+      return "Discord authorization was cancelled or denied.";
+    case "bad_callback":
+      return "The Discord callback was incomplete. Please try linking again.";
+    case "not_configured":
+      return "Discord linking is not available on the server right now.";
+    case "missing_token":
+      return "Your login session needs a fresh token. Sign out, sign in again, then link Discord.";
+    case "ALREADY_LINKED":
+      return "This Discord account is already linked to a Hollowed Oath profile.";
+    case "INVALID_STATE":
+      return "This Discord link attempt expired or was already used. Try “Link Discord account” again.";
+    default:
+      return reason
+        ? `Discord linking did not complete (${reason}). Please try again.`
+        : "Discord linking did not complete. Please try again.";
+  }
+}
+
+export default async function SignedInPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login?reason=not_signed_in");
   }
+
+  const sp = searchParams ? await searchParams : {};
+  const discordParam = firstParam(sp.discord);
+  const discordLinked = discordParam === "linked";
+  const discordFlowFailed = discordParam === "error";
+  const discordErrorReason = discordFlowFailed
+    ? firstParam(sp.reason)
+    : undefined;
 
   const accountId =
     typeof session.user.id === "string" ? session.user.id : null;
@@ -62,7 +106,26 @@ export default async function SignedInPage() {
             ) : null}
           </dl>
 
+          {discordLinked ? (
+            <p
+              className="mt-4 rounded-md border border-emerald-500/40 bg-emerald-950/25 px-3 py-2 font-[family-name:var(--font-outfit)] text-sm text-emerald-100"
+              role="status"
+            >
+              Your Discord account was linked successfully.
+            </p>
+          ) : null}
+          {discordFlowFailed ? (
+            <p
+              className="mt-4 rounded-md border border-red-500/40 bg-red-950/30 px-3 py-2 font-[family-name:var(--font-outfit)] text-sm text-red-200"
+              role="alert"
+            >
+              {discordErrorMessage(discordErrorReason)}
+            </p>
+          ) : null}
+
           <SiteSessionApiPreview />
+
+          <DiscordLinkSection />
 
           <SignedInActions />
         </div>

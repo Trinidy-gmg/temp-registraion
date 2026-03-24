@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { CredentialsSignin } from "next-auth";
 import { authBackendPost, getAuthBackendConfig } from "@/lib/auth-backend";
 import { coerceLoginTokens } from "@/lib/auth-session-cookies";
+import { setHamsAuthCookiesFromLogin } from "@/lib/server-hams-auth-cookies";
 
 /** Auth.js v5 expects AUTH_SECRET / AUTH_URL; mirror NEXTAUTH_* for older env files. */
 if (!process.env.AUTH_SECRET && process.env.NEXTAUTH_SECRET) {
@@ -31,12 +32,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        keepMeSignedIn: { label: "Keep me signed in", type: "text" },
       },
       async authorize(credentials) {
         const email =
           typeof credentials?.email === "string" ? credentials.email.trim() : "";
         const password =
           typeof credentials?.password === "string" ? credentials.password : "";
+        const keepMeSignedIn =
+          typeof credentials?.keepMeSignedIn === "string" &&
+          credentials.keepMeSignedIn === "true";
         if (!email || !password) {
           throwCredentialsCode("MISSING_CREDENTIALS");
         }
@@ -79,6 +84,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const coerced = coerceLoginTokens(result.data);
         if (!coerced.ok) {
           console.error("[auth] login JSON shape", coerced);
+          throwCredentialsCode("ACCOUNT_SERVICE_ERROR");
+        }
+
+        try {
+          await setHamsAuthCookiesFromLogin(coerced.tokens, keepMeSignedIn);
+        } catch (e) {
+          console.error("[auth] could not persist HAMS cookies", e);
           throwCredentialsCode("ACCOUNT_SERVICE_ERROR");
         }
 

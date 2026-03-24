@@ -15,11 +15,14 @@ export async function fetchLoginAfterVerification(opts: {
   | { ok: true; account_id: string }
   | { ok: false; message: string; code?: string; hint?: string }
 > {
-  const { email, password, keepMeSignedIn: _keepMeSignedIn } = opts;
-  void _keepMeSignedIn; /* reserved for future NextAuth session maxAge */
+  const { email, password, keepMeSignedIn } = opts;
 
   const tryOnce = () =>
-    signInWithCredentials({ email: email.trim(), password });
+    signInWithCredentials({
+      email: email.trim(),
+      password,
+      keepMeSignedIn,
+    });
 
   let login = await tryOnce();
 

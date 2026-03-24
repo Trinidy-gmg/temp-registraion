@@ -64,6 +64,7 @@ export function SignInForm() {
       const login = await signInWithCredentials({
         email: email.trim(),
         password,
+        keepMeSignedIn,
       });
       if (!login.ok) {
         if (login.code === "EMAIL_NOT_VERIFIED") {
@@ -111,6 +112,7 @@ export function SignInForm() {
         const login = await signInWithCredentials({
           email: email.trim(),
           password,
+          keepMeSignedIn,
         });
         if (!login.ok) {
           setError(

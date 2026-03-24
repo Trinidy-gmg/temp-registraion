@@ -11,6 +11,14 @@ export function SignedInActions() {
   async function handleSignOut() {
     setLoading(true);
     try {
+      try {
+        await fetch("/api/auth/hams-session", {
+          method: "POST",
+          credentials: "same-origin",
+        });
+      } catch {
+        /* best-effort clear HAMS httpOnly cookies */
+      }
       await signOut({ redirect: false });
     } finally {
       router.replace("/");
