@@ -2,6 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+function normalizeOAuthRedirectUri(u: string): string {
+  return u.trim().replace(/\/$/, "");
+}
+
+/** Callback path fixed by app Route Handler — must match HAMS DISCORD_REDIRECT_URI + Discord app redirects. */
+const DISCORD_CALLBACK_PATH = "/oauth/discord/callback";
+
 type OAuthLink = {
   provider: string;
   external_username?: string | null;
@@ -21,6 +28,16 @@ export function DiscordLinkSection() {
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linksBody, setLinksBody] = useState<LinksResponse | null>(null);
+  const [expectedDiscordRedirect, setExpectedDiscordRedirect] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setExpectedDiscordRedirect(
+      normalizeOAuthRedirectUri(`${window.location.origin}${DISCORD_CALLBACK_PATH}`)
+    );
+  }, []);
 
   const loadLinks = useCallback(async () => {
     setLoading(true);
@@ -75,6 +92,33 @@ export function DiscordLinkSection() {
         );
         return;
       }
+
+      let redirectFromHams: string | null = null;
+      try {
+        const authUrl = new URL(data.authorization_url);
+        redirectFromHams = authUrl.searchParams.get("redirect_uri");
+      } catch {
+        setError("Could not parse Discord authorization URL from the server.");
+        return;
+      }
+      if (redirectFromHams) {
+        const decoded = normalizeOAuthRedirectUri(
+          decodeURIComponent(redirectFromHams)
+        );
+        const expected =
+          typeof window !== "undefined"
+            ? normalizeOAuthRedirectUri(
+                `${window.location.origin}${DISCORD_CALLBACK_PATH}`
+              )
+            : null;
+        if (expected && decoded !== expected) {
+          setError(
+            `Discord OAuth redirect URI mismatch. HAMS is sending "${decoded}" but this registration site is "${expected}". Set HAMS env DISCORD_REDIRECT_URI (and the same URL in the Discord Developer Portal → OAuth2 → Redirects) to exactly: ${expected}`
+          );
+          return;
+        }
+      }
+
       window.location.assign(data.authorization_url);
     } catch {
       setError("Could not start Discord linking.");
@@ -103,6 +147,15 @@ export function DiscordLinkSection() {
         Link your Discord account to your Hollowed Oath profile. You will be sent to
         Discord to approve access, then returned here.
       </p>
+
+      {expectedDiscordRedirect ? (
+        <p className="mt-2 font-[family-name:var(--font-outfit)] text-[11px] leading-snug text-white/40">
+          <span className="text-white/50">Redirect URI</span> (must match{" "}
+          <code className="text-[#F0BA19]/80">DISCORD_REDIRECT_URI</code> on HAMS and
+          Discord&apos;s OAuth2 redirects):{" "}
+          <code className="break-all text-emerald-200/80">{expectedDiscordRedirect}</code>
+        </p>
+      ) : null}
 
       {error ? (
         <p
