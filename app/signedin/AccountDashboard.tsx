@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DiscordLinkSection } from "@/app/signedin/DiscordLinkSection";
+import { PasswordSecuritySection } from "@/app/signedin/PasswordSecuritySection";
 import { SignedInActions } from "@/app/signedin/SignedInActions";
 
 type MeProfile = {
@@ -314,9 +315,11 @@ export function AccountDashboard({
           ) : null}
         </div>
         <div className="mt-5">
-          <DiscordLinkSection variant="dashboard" />
+          <DiscordLinkSection variant="dashboard" onLinksChanged={() => void load()} />
         </div>
       </section>
+
+      <PasswordSecuritySection />
 
       {/* Session */}
       <footer className="flex flex-col items-stretch justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center">

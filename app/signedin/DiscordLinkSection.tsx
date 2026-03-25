@@ -25,12 +25,16 @@ type LinksResponse = {
 
 export function DiscordLinkSection({
   variant = "default",
+  onLinksChanged,
 }: {
   /** `dashboard` = embedded in account page (no outer duplicate chrome). */
   variant?: "default" | "dashboard";
+  /** Called after a successful unlink so parents can refresh `/api/me`. */
+  onLinksChanged?: () => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linksBody, setLinksBody] = useState<LinksResponse | null>(null);
   const [expectedDiscordRedirect, setExpectedDiscordRedirect] = useState<string | null>(
@@ -132,6 +136,37 @@ export function DiscordLinkSection({
     }
   }
 
+  async function unlinkDiscord() {
+    if (!discordLink) return;
+    const ok = window.confirm(
+      "Remove Discord from this Hollowed Oath account? You can link a different Discord account later."
+    );
+    if (!ok) return;
+    setUnlinking(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/oauth/links/discord", {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+      };
+      if (!res.ok) {
+        setError(data.error || `Could not unlink Discord (${res.status})`);
+        return;
+      }
+      await loadLinks();
+      onLinksChanged?.();
+    } catch {
+      setError("Could not unlink Discord.");
+    } finally {
+      setUnlinking(false);
+    }
+  }
+
   const showRedirectHint = process.env.NODE_ENV === "development";
 
   if (!configured && !loading) {
@@ -195,13 +230,23 @@ export function DiscordLinkSection({
           Checking linked accounts…
         </p>
       ) : discordLink ? (
-        <p className="mt-3 font-[family-name:var(--font-outfit)] text-sm text-emerald-100/90">
-          Linked as{" "}
-          <span className="font-semibold text-white">
-            {discordLink.external_username || discordLink.external_id || "Discord user"}
-          </span>
-          .
-        </p>
+        <div className="mt-3 space-y-3">
+          <p className="font-[family-name:var(--font-outfit)] text-sm text-emerald-100/90">
+            Linked as{" "}
+            <span className="font-semibold text-white">
+              {discordLink.external_username || discordLink.external_id || "Discord user"}
+            </span>
+            .
+          </p>
+          <button
+            type="button"
+            disabled={unlinking}
+            onClick={() => void unlinkDiscord()}
+            className="w-full rounded-md border border-white/20 bg-black/30 py-2 font-[family-name:var(--font-outfit)] text-xs font-semibold text-white/80 transition hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-100 disabled:opacity-50"
+          >
+            {unlinking ? "Removing…" : "Unlink Discord"}
+          </button>
+        </div>
       ) : (
         <button
           type="button"

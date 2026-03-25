@@ -310,6 +310,15 @@ export function SignInForm() {
             />
           </div>
 
+          <p className="mt-2 text-right">
+            <Link
+              href="/forgot-password"
+              className="font-[family-name:var(--font-outfit)] text-xs font-medium text-[#F0BA19]/90 underline-offset-2 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
+
           <label className="mt-6 flex cursor-pointer items-center gap-3 select-none">
             <input
               id={kmsiId}
