@@ -118,6 +118,65 @@ export async function authBackendPost<T>(
   return { ok: true, status: res.status, data: data as T };
 }
 
+export async function authBackendForgotPassword(
+  email: string
+): Promise<
+  { ok: true; status: number; data: { message?: string } } | { ok: false; status: number; data: unknown }
+> {
+  const { baseUrl } = getAuthBackendConfig();
+  const url = `${baseUrl}/api/auth/forgot-password`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch (e) {
+    console.error("[auth-backend] forgot-password fetch failed", e);
+    return {
+      ok: false,
+      status: 502,
+      data: { error: "Could not reach the account service." },
+    };
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, status: res.status, data };
+  }
+  return { ok: true, status: res.status, data: data as { message?: string } };
+}
+
+export async function authBackendResetPassword(
+  token: string,
+  newPassword: string
+): Promise<
+  { ok: true; status: number; data: { message?: string } } | { ok: false; status: number; data: unknown }
+> {
+  const { baseUrl } = getAuthBackendConfig();
+  const url = `${baseUrl}/api/auth/reset-password`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+  } catch (e) {
+    console.error("[auth-backend] reset-password fetch failed", e);
+    return {
+      ok: false,
+      status: 502,
+      data: { error: "Could not reach the account service." },
+    };
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, status: res.status, data };
+  }
+  return { ok: true, status: res.status, data: data as { message?: string } };
+}
+
 type MarkVerifiedOk = {
   message?: string;
   account_id?: string;
