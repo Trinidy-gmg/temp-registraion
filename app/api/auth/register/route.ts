@@ -100,6 +100,10 @@ export async function POST(request: Request) {
 
   const sendResult = await sendVerificationEmail(email, code);
 
+  const nativeClient =
+    (request.headers.get("x-hollowedoath-client") || "").trim().toLowerCase() ===
+    "patcher";
+
   const res = NextResponse.json(
     {
       message: data.message,
@@ -107,6 +111,8 @@ export async function POST(request: Request) {
       verification_required: true,
       verification_email_sent: sendResult.ok,
       ...(sendResult.ok ? {} : { verification_email_error: sendResult.error }),
+      /** Desktop patcher: same verification flow as the browser, without httpOnly cookies. */
+      ...(nativeClient ? { verification_session: token } : {}),
     },
     { status: 201 }
   );

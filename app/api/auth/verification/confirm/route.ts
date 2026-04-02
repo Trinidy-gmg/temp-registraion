@@ -18,7 +18,12 @@ type MarkErr = { error?: string; code?: string };
  */
 export async function POST(request: Request) {
   try {
-    let body: { code?: string; password?: string; keepMeSignedIn?: boolean };
+    let body: {
+      code?: string;
+      password?: string;
+      keepMeSignedIn?: boolean;
+      verification_session?: string;
+    };
     try {
       body = await request.json();
     } catch {
@@ -34,8 +39,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const bodySession =
+      typeof body.verification_session === "string"
+        ? body.verification_session.trim()
+        : "";
+
     const jar = await cookies();
-    const raw = jar.get(EMAIL_VERIFY_COOKIE)?.value;
+    const rawCookie = jar.get(EMAIL_VERIFY_COOKIE)?.value;
+    const raw = bodySession || rawCookie || "";
     if (!raw) {
       return NextResponse.json(
         { error: "No pending verification session" },
