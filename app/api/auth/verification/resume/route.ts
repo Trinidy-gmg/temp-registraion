@@ -109,7 +109,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const sendResult = await sendVerificationEmail(email, code);
+  const verificationLink = new URL(
+    `/api/auth/verification/link/${token}`,
+    "https://hollowedoath.com"
+  ).toString();
+
+  const sendResult = await sendVerificationEmail(email, code, verificationLink);
   if (!sendResult.ok) {
     return NextResponse.json({ error: sendResult.error }, { status: 502 });
   }

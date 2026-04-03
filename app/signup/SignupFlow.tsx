@@ -131,7 +131,7 @@ export function SignupFlow() {
       // New flow never logs in here — old deployments only return { account_id } without this flag.
       if (regData.verification_required !== true) {
         setError(
-          "Your account may have been created, but we couldn't start email verification. Please try signing in — you may be able to request a new verification code from the sign-in page."
+          "Your account may have been created, but we couldn't start email verification. Please try signing in — you may be able to request a new verification email from the sign-in page."
         );
         setCreatedAccountId(accountId);
         setVerifyNotice(null);
@@ -145,7 +145,7 @@ export function SignupFlow() {
       if (regData.verification_email_sent === false) {
         setVerifyNotice(
           (regData.verification_email_error as string | undefined) ||
-            "We created your account, but the verification email couldn't be sent. Tap “Resend code” below, or try again in a few minutes."
+            "We created your account, but the verification email couldn't be sent. Tap “Resend email” below, or try again in a few minutes."
         );
       } else {
         setVerifyNotice(null);
@@ -172,9 +172,9 @@ export function SignupFlow() {
       if (!res.ok) {
         throw new Error(data.error || `Could not resend (${res.status})`);
       }
-      setVerifyNotice("A new code was sent. Check your inbox.");
+      setVerifyNotice("A new verification email was sent. Check your inbox.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not resend code");
+      setError(err instanceof Error ? err.message : "Could not resend email");
     } finally {
       setLoading(false);
     }
@@ -185,7 +185,9 @@ export function SignupFlow() {
     setError(null);
     const code = verifyCode.replace(/\s/g, "");
     if (!/^\d{8}$/.test(code)) {
-      setError("Enter the 8-digit code from your email.");
+      setError(
+        "Enter the 8-digit code from your email, or click the verification link instead."
+      );
       return;
     }
     if (!signupPassword) {
@@ -488,7 +490,7 @@ export function SignupFlow() {
                 htmlFor={verifyCodeId}
                 className="block font-[family-name:var(--font-outfit)] text-xs font-medium uppercase tracking-wider text-[#F0BA19]/90"
               >
-                Verification code
+                Verification code or link
               </label>
               <input
                 id={verifyCodeId}
@@ -519,7 +521,7 @@ export function SignupFlow() {
                 onClick={() => void handleResendCode()}
                 className="rounded-md border border-white/25 px-4 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/75 hover:bg-white/5 disabled:opacity-50"
               >
-                Resend code
+                Resend email
               </button>
               <button
                 type="button"

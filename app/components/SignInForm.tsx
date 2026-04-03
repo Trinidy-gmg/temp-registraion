@@ -105,7 +105,7 @@ export function SignInForm() {
       }
       if (data.status === "verification_required") {
         setVerifyPhase("code");
-        setSuccess("Verification code sent. Check your email.");
+        setSuccess("Verification email sent. Check your email for the link or code.");
         return;
       }
       if (data.ok && data.account_id) {
@@ -141,7 +141,7 @@ export function SignInForm() {
     setSuccess(null);
     const code = verifyCode.replace(/\s/g, "");
     if (!/^\d{8}$/.test(code)) {
-      setError("Enter the 8-digit code from your email.");
+      setError("Enter the 8-digit code from your email, or click the verification link instead.");
       return;
     }
     setLoading(true);
@@ -191,7 +191,7 @@ export function SignInForm() {
       if (!res.ok) {
         throw new Error(data.error || `Could not resend (${res.status})`);
       }
-      setSuccess("A new code was sent to your email.");
+      setSuccess("A new verification email was sent to your email.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not resend");
     } finally {
@@ -228,14 +228,14 @@ export function SignInForm() {
       {verifyPhase === "code" ? (
         <form onSubmit={handleConfirmVerification} className="mt-6 text-left">
           <p className="font-[family-name:var(--font-outfit)] text-sm text-white/70">
-            Enter the 8-digit code we emailed you, then you’ll be signed in.
+            Click the verification link we emailed you, or enter the 8-digit code below, then you’ll be signed in.
           </p>
           <div className="mt-4">
             <label
               htmlFor={verifyCodeId}
               className="block font-[family-name:var(--font-outfit)] text-xs font-medium uppercase tracking-wider text-[#F0BA19]/90"
             >
-              Verification code
+              Verification code or link
             </label>
             <input
               id={verifyCodeId}
@@ -263,7 +263,7 @@ export function SignInForm() {
             onClick={() => void handleResendWhileSigningIn()}
             className="mt-3 w-full rounded-md border border-white/20 py-2.5 font-[family-name:var(--font-outfit)] text-sm text-white/75 hover:bg-white/5 disabled:opacity-50"
           >
-            Resend code
+            Resend email
           </button>
         </form>
       ) : (
@@ -365,7 +365,7 @@ export function SignInForm() {
               onClick={() => void handleSendVerificationCode()}
               className="mt-4 w-full rounded-md border border-amber-500/40 bg-amber-950/25 py-3 font-[family-name:var(--font-outfit)] text-sm font-semibold text-amber-100 transition hover:bg-amber-950/40 disabled:opacity-50"
             >
-              Email me a verification code
+              Email me a verification link
             </button>
           ) : null}
 

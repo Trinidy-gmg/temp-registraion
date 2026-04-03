@@ -1,5 +1,5 @@
 /**
- * Send 8-digit verification email via SendGrid (dynamic template or simple HTML).
+ * Send verification email via SendGrid (magic link + 8-digit code, dynamic template or simple HTML).
  */
 
 export type SendVerificationResult =
@@ -8,7 +8,8 @@ export type SendVerificationResult =
 
 export async function sendVerificationEmail(
   toEmail: string,
-  code: string
+  code: string,
+  verificationLink: string
 ): Promise<SendVerificationResult> {
   const apiKey = process.env.SENDGRID_API_KEY?.trim();
   if (!apiKey) {
@@ -39,6 +40,7 @@ export async function sendVerificationEmail(
             dynamic_template_data: {
               code,
               email: toEmail,
+              verification_link: verificationLink,
             },
           },
         ],
@@ -47,11 +49,11 @@ export async function sendVerificationEmail(
     : {
         from: { email: from, name: fromName },
         personalizations: [{ to: [{ email: toEmail }] }],
-        subject: "Your Hollowed Oath verification code",
+        subject: "Verify your Hollowed Oath account",
         content: [
           {
             type: "text/html",
-            value: simpleVerificationHtml(code, toEmail),
+            value: simpleVerificationHtml(code, toEmail, verificationLink),
           },
         ],
       };
@@ -87,14 +89,22 @@ function escapeHtml(s: string): string {
 }
 
 /** Fallback when no dynamic template ID is set (dev / staging). */
-function simpleVerificationHtml(code: string, email: string): string {
+function simpleVerificationHtml(
+  code: string,
+  email: string,
+  verificationLink: string
+): string {
   const c = escapeHtml(code);
   const e = escapeHtml(email);
+  const link = escapeHtml(verificationLink);
   return `<!DOCTYPE html><html><body style="margin:0;background:#141210;font-family:system-ui,sans-serif;color:#ebe6dc;padding:32px;">
   <div style="max-width:560px;margin:0 auto;border:1px solid rgba(240,186,25,0.35);border-radius:12px;padding:32px;background:#1a1714;">
     <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:20px;color:#f0ba19;letter-spacing:0.1em;text-transform:uppercase;">Hollowed Oath</p>
     <p style="margin:0 0 20px;font-size:14px;color:rgba(235,230,220,0.6);">Account verification</p>
-    <p style="font-size:15px;line-height:1.5;">Your verification code:</p>
+    <p style="font-size:15px;line-height:1.5;">Click the link below to verify your account, or enter the code as a fallback:</p>
+    <p style="margin:18px 0 22px;"><a href="${link}" style="display:inline-block;background:#f0ba19;color:#141210;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:999px;">Verify email</a></p>
+    <p style="font-size:12px;line-height:1.5;color:rgba(235,230,220,0.55);word-break:break-all;">${link}</p>
+    <p style="margin:22px 0 10px;font-size:15px;line-height:1.5;">Your verification code:</p>
     <p style="font-size:28px;font-weight:700;letter-spacing:0.3em;color:#f0ba19;font-family:monospace;">${c}</p>
     <p style="font-size:12px;color:rgba(235,230,220,0.45);">Sent to ${e}</p>
   </div></body></html>`;
